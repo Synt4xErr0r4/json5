@@ -915,7 +915,7 @@ public class JSONArray implements Iterable<Object> {
 	/**
 	 * Converts the JSONArray into its string representation.
 	 * The indentation factor enables pretty-printing and defines
-	 * how many spaces (' ') should be placed before each index/value pair.
+	 * how many spaces (' ') should be placed before each value.
 	 * A factor of {@code < 1} disables pretty-printing and discards
 	 * any optional whitespace characters.
 	 * <p>
@@ -927,7 +927,7 @@ public class JSONArray implements Iterable<Object> {
 	 *     "nested": 123
 	 *   },
 	 *   false
-	 * }
+	 * ]
 	 * </pre>
 	 * <p>
 	 * {@code indentFactor = 0}:
