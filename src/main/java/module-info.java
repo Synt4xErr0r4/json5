@@ -24,5 +24,7 @@
  * </pre>
  */
 module json5 {
+	requires lombok;
+	
 	exports at.syntaxerror.json5;
 }

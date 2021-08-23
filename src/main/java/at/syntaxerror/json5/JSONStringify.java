@@ -23,6 +23,7 @@
  */
 package at.syntaxerror.json5;
 
+import java.time.Instant;
 import java.util.Map;
 
 /**
@@ -63,12 +64,18 @@ public class JSONStringify {
 	 * 
 	 * @param object the JSONObject
 	 * @param indentFactor the indentation factor
+	 * @param options the options for stringifying
 	 * @return the string representation
-	 * 
-	 * @see JSONStringify#toString(JSONObject, int)
+	 * @since 1.1.0
 	 */
-	public static String toString(JSONObject object, int indentFactor) {
-		return toString(object, "", Math.max(0, indentFactor));
+	public static String toString(JSONObject object, int indentFactor, JSONOptions options) {
+		return toString(
+			object,
+			"",
+			Math.max(0, indentFactor),
+			options == null ?
+				JSONOptions.getDefaultOptions() : options
+		);
 	}
 
 	/**
@@ -96,13 +103,85 @@ public class JSONStringify {
 	 * 
 	 * @param array the JSONArray
 	 * @param indentFactor the indentation factor
+	 * @param options the options for stringifying
+	 * @return the string representation
+	 * @since 1.1.0
+	 */
+	public static String toString(JSONArray array, int indentFactor, JSONOptions options) {
+		return toString(
+			array,
+			"",
+			Math.max(0, indentFactor), 
+			options == null ?
+				JSONOptions.getDefaultOptions() : options
+		);
+	}
+
+	/**
+	 * Converts a JSONObject into its string representation.
+	 * The indentation factor enables pretty-printing and defines
+	 * how many spaces (' ') should be placed before each key/value pair.
+	 * A factor of {@code < 1} disables pretty-printing and discards
+	 * any optional whitespace characters.
+	 * <p>
+	 * {@code indentFactor = 2}:
+	 * <pre>
+	 * {
+	 *   "key0": "value0",
+	 *   "key1": {
+	 *     "nested": 123
+	 *   },
+	 *   "key2": false
+	 * }
+	 * </pre>
+	 * <p>
+	 * {@code indentFactor = 0}:
+	 * <pre>
+	 * {"key0":"value0","key1":{"nested":123},"key2":false}
+	 * </pre>
+	 * This uses the {@link JSONOptions#getDefaultOptions() default options}
+	 * 
+	 * @param object the JSONObject
+	 * @param indentFactor the indentation factor
+	 * @return the string representation
+	 */
+	public static String toString(JSONObject object, int indentFactor) {
+		return toString(object, indentFactor, null);
+	}
+
+	/**
+	 * Converts a JSONArray into its string representation.
+	 * The indentation factor enables pretty-printing and defines
+	 * how many spaces (' ') should be placed before each value.
+	 * A factor of {@code < 1} disables pretty-printing and discards
+	 * any optional whitespace characters.
+	 * <p>
+	 * {@code indentFactor = 2}:
+	 * <pre>
+	 * [
+	 *   "value",
+	 *   {
+	 *     "nested": 123
+	 *   },
+	 *   false
+	 * ]
+	 * </pre>
+	 * <p>
+	 * {@code indentFactor = 0}:
+	 * <pre>
+	 * ["value",{"nested":123},false]
+	 * </pre>
+	 * This uses the {@link JSONOptions#getDefaultOptions() default options}
+	 * 
+	 * @param array the JSONArray
+	 * @param indentFactor the indentation factor
 	 * @return the string representation
 	 */
 	public static String toString(JSONArray array, int indentFactor) {
-		return toString(array, "", Math.max(0, indentFactor));
+		return toString(array, indentFactor, null);
 	}
 	
-	private static String toString(JSONObject object, String indent, int indentFactor) {
+	private static String toString(JSONObject object, String indent, int indentFactor, JSONOptions options) {
 		StringBuilder sb = new StringBuilder();
 		
 		String childIndent = indent + " ".repeat(indentFactor);
@@ -122,7 +201,7 @@ public class JSONStringify {
 			if(indentFactor > 0)
 				sb.append(' ');
 			
-			sb.append(toString(entry.getValue(), childIndent, indentFactor));
+			sb.append(toString(entry.getValue(), childIndent, indentFactor, options));
 		}
 
 		if(indentFactor > 0)
@@ -132,7 +211,7 @@ public class JSONStringify {
 		
 		return sb.toString();
 	}
-	private static String toString(JSONArray array, String indent, int indentFactor) {
+	private static String toString(JSONArray array, String indent, int indentFactor, JSONOptions options) {
 		StringBuilder sb = new StringBuilder();
 		
 		String childIndent = indent + " ".repeat(indentFactor);
@@ -146,7 +225,7 @@ public class JSONStringify {
 			if(indentFactor > 0)
 				sb.append('\n').append(childIndent);
 			
-			sb.append(toString(value, childIndent, indentFactor));
+			sb.append(toString(value, childIndent, indentFactor, options));
 		}
 
 		if(indentFactor > 0)
@@ -157,18 +236,27 @@ public class JSONStringify {
 		return sb.toString();
 	}
 	
-	private static String toString(Object value, String indent, int indentFactor) {
+	private static String toString(Object value, String indent, int indentFactor, JSONOptions options) {
 		if(value == null)
 			return "null";
 		
 		if(value instanceof JSONObject)
-			return toString((JSONObject) value, indent, indentFactor);
+			return toString((JSONObject) value, indent, indentFactor, options);
 
 		if(value instanceof JSONArray)
-			return toString((JSONArray) value, indent, indentFactor);
+			return toString((JSONArray) value, indent, indentFactor, options);
 		
 		if(value instanceof String)
 			return quote((String) value);
+		
+		if(value instanceof Instant) {
+			Instant instant = (Instant) value;
+			
+			if(options.isStringifyUnixInstants())
+				return String.valueOf(instant.getEpochSecond());
+			
+			return quote(instant.toString());
+		}
 		
 		return String.valueOf(value);
 	}

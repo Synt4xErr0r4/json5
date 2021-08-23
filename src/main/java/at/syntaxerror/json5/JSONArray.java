@@ -25,6 +25,7 @@ package at.syntaxerror.json5;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -184,7 +185,8 @@ public class JSONArray implements Iterable<Object> {
 	 * @throws JSONException if the index does not exist
 	 */
 	public boolean isString(int index) {
-		return checkIndex(index) instanceof String;
+		Object value = checkIndex(index);
+		return value instanceof String || value instanceof Instant;
 	}
 
 	/**
@@ -196,7 +198,8 @@ public class JSONArray implements Iterable<Object> {
 	 * @throws JSONException if the index does not exist
 	 */
 	public boolean isNumber(int index) {
-		return checkIndex(index) instanceof Number;
+		Object value = checkIndex(index);
+		return value instanceof Number || value instanceof Instant;
 	}
 
 	/**
@@ -221,6 +224,19 @@ public class JSONArray implements Iterable<Object> {
 	 */
 	public boolean isArray(int index) {
 		return checkIndex(index) instanceof JSONArray;
+	}
+
+	/**
+	 * Checks if the value with the specified index is an Instant
+	 * 
+	 * @param index the index
+	 * @return whether or not the value is an Instant
+	 * @since 1.1.0
+	 * 
+	 * @throws JSONException if the index does not exist
+	 */
+	public boolean isInstant(int index) {
+		return checkIndex(index) instanceof Instant;
 	}
 	
 	// -- GET --
@@ -475,6 +491,19 @@ public class JSONArray implements Iterable<Object> {
 	public JSONArray getArray(int index) {
 		return checkType(this::isArray, index, "array");
 	}
+
+	/**
+	 * Returns the value as an Instant for a given index
+	 * 
+	 * @param index the index
+	 * @return the Instant
+	 * @since 1.1.0
+	 * 
+	 * @throws JSONException if the index does not exist, or if the value is not an Instant
+	 */
+	public Instant getInstant(int index) {
+		return checkType(this::isInstant, index, "instant");
+	}
 	
 	// -- OPTIONAL --
 	
@@ -655,7 +684,7 @@ public class JSONArray implements Iterable<Object> {
 	}
 
 	/**
-	 * Returns the exact value as a JSONObject for a given index, or the default value if the operation is not possible
+	 * Returns the value as a JSONObject for a given index, or the default value if the operation is not possible
 	 * 
 	 * @param index the index
 	 * @param defaults the default value
@@ -666,7 +695,7 @@ public class JSONArray implements Iterable<Object> {
 	}
 
 	/**
-	 * Returns the exact value as a JSONArray for a given index, or the default value if the operation is not possible
+	 * Returns the value as a JSONArray for a given index, or the default value if the operation is not possible
 	 * 
 	 * @param index the index
 	 * @param defaults the default value
@@ -674,6 +703,18 @@ public class JSONArray implements Iterable<Object> {
 	 */
 	public JSONArray getArray(int index, JSONArray defaults) {
 		return getOpt(index, this::getArray, defaults);
+	}
+
+	/**
+	 * Returns the value as an Instant for a given index, or the default value if the operation is not possible
+	 * 
+	 * @param index the index
+	 * @param defaults the default value
+	 * @return the Instant
+	 * @since 1.1.0
+	 */
+	public Instant getInstant(int index, Instant defaults) {
+		return getOpt(index, this::getInstant, defaults);
 	}
 	
 	// -- ADD --
@@ -784,6 +825,146 @@ public class JSONArray implements Iterable<Object> {
 	 */
 	public void add(JSONArray value) {
 		addCheck(value);
+	}
+	
+	// -- INSERT --
+	
+	/**
+	 * Inserts a value to the JSONArray at a given index
+	 *
+	 * @param index the index
+	 * @param value the new value
+	 * @since 1.1.0
+	 */
+	public void insert(int index, Object value) {
+		if(index < 0 || index > length())
+			throw new JSONException("JSONArray[" + index + "] is out of bounds");
+		
+		values.add(index, JSONObject.sanitize(value));
+	}
+	
+	private void insertCheck(int index, Object value) {
+		if(index < 0 || index > length())
+			throw new JSONException("JSONArray[" + index + "] is out of bounds");
+		
+		values.add(index, JSONObject.checkNull(value));
+	}
+
+	/**
+	 * Inserts a value to the JSONArray at a given index
+	 *
+	 * @param index the index
+	 * @param value the new value
+	 * @since 1.1.0
+	 */
+	public void insert(int index, boolean value) {
+		insertCheck(index, value);
+	}
+
+	/**
+	 * Inserts a value to the JSONArray at a given index
+	 *
+	 * @param index the index
+	 * @param value the new value
+	 * @since 1.1.0
+	 */
+	public void insert(int index, String value) {
+		insertCheck(index, value);
+	}
+
+	/**
+	 * Inserts a value to the JSONArray at a given index
+	 *
+	 * @param index the index
+	 * @param value the new value
+	 * @since 1.1.0
+	 */
+	public void insert(int index, Number value) {
+		insertCheck(index, value);
+	}
+
+	/**
+	 * Inserts a value to the JSONArray at a given index
+	 *
+	 * @param index the index
+	 * @param value the new value
+	 * @since 1.1.0
+	 */
+	public void insert(int index, byte value) {
+		insertCheck(index, value);
+	}
+	/**
+	 * Inserts a value to the JSONArray at a given index
+	 *
+	 * @param index the index
+	 * @param value the new value
+	 * @since 1.1.0
+	 */
+	public void insert(int index, short value) {
+		insertCheck(index, value);
+	}
+	/**
+	 * Inserts a value to the JSONArray at a given index
+	 *
+	 * @param index the index
+	 * @param value the new value
+	 * @since 1.1.0
+	 */
+	public void insert(int index, int value) {
+		insertCheck(index, value);
+	}
+	/**
+	 * Inserts a value to the JSONArray at a given index
+	 *
+	 * @param index the index
+	 * @param value the new value
+	 * @since 1.1.0
+	 */
+	public void insert(int index, long value) {
+		insertCheck(index, value);
+	}
+
+	/**
+	 * Inserts a value to the JSONArray at a given index
+	 *
+	 * @param index the index
+	 * @param value the new value
+	 * @since 1.1.0
+	 */
+	public void insert(int index, float value) {
+		insertCheck(index, value);
+	}
+	/**
+	 * Inserts a value to the JSONArray at a given index
+	 *
+	 * @param index the index
+	 * @param value the new value
+	 * @since 1.1.0
+	 */
+	public void insert(int index, double value) {
+		insertCheck(index, value);
+	}
+
+	/**
+	 * Inserts a value to the JSONArray at a given index
+	 *
+	 * @param index the index
+	 * @param value the new value
+	 * @since 1.1.0
+	 */
+	public void insert(int index, JSONObject value) {
+		insertCheck(index, value);
+	}
+
+	/**
+	 * Inserts a value to the JSONArray at a given index
+	 *
+	 * @param index the index
+	 * @param value the new value
+	 * @since 1.1.0
+	 */
+	public void insert(int index, JSONArray value) {
+		insertCheck(index, value);
 	}
 	
 	// -- SET --

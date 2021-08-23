@@ -23,13 +23,17 @@
  */
 package json5;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.time.Instant;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import at.syntaxerror.json5.JSONArray;
 import at.syntaxerror.json5.JSONObject;
+import at.syntaxerror.json5.JSONOptions;
 import at.syntaxerror.json5.JSONParser;
 
 /**
@@ -73,6 +77,12 @@ class UnitTests {
 	
 	@Test
 	void testStringify() {
+		JSONOptions.setDefaultOptions(
+			JSONOptions.builder()
+				.stringifyUnixInstants(true)
+				.build()
+		);
+		
 		JSONObject json = new JSONObject();
 		
 		json.set("a", (Object) null);
@@ -85,10 +95,11 @@ class UnitTests {
 		json.set("h", (float) -123e45);
 		json.set("i", 123L);
 		json.set("j", "Lorem Ipsum");
+		json.set("k", Instant.now());
 		
 		assertEquals(
-			json.toMap(),
-			parse(json.toString()).toMap()
+			json.toString(),
+			parse(json.toString()).toString()
 		);
 	}
 	
@@ -122,6 +133,27 @@ class UnitTests {
 		assertTrue(
 			parse("// test\n{ // lorem ipsum\n a: 'b'\n// test\n}// test")
 				.has("a")
+		);
+	}
+	
+	/** @since 1.1.0 */
+	@Test
+	void testInstant() {
+		assertTrue(
+			parse("{a:1338150759534}")
+				.isInstant("a")
+		);
+		
+		assertEquals(
+			parse("{a:1338150759534}")
+				.getLong("a"),
+			1338150759534L
+		);
+		
+		assertEquals(
+			parse("{a:'2001-09-09T01:46:40Z'}")
+				.getString("a"),
+			"2001-09-09T01:46:40Z"
 		);
 	}
 	

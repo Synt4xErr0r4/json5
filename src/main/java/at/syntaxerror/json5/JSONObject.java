@@ -25,6 +25,7 @@ package at.syntaxerror.json5;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -220,7 +221,8 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	 * @throws JSONException if the key does not exist
 	 */
 	public boolean isString(String key) {
-		return checkKey(key) instanceof String;
+		Object value = checkKey(key);
+		return value instanceof String || value instanceof Instant;
 	}
 
 	/**
@@ -232,7 +234,8 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	 * @throws JSONException if the key does not exist
 	 */
 	public boolean isNumber(String key) {
-		return checkKey(key) instanceof Number;
+		Object value = checkKey(key);
+		return value instanceof Number || value instanceof Instant;
 	}
 
 	/**
@@ -257,6 +260,19 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	 */
 	public boolean isArray(String key) {
 		return checkKey(key) instanceof JSONArray;
+	}
+
+	/**
+	 * Checks if the value with the specified key is an Instant
+	 * 
+	 * @param key the key
+	 * @return whether or not the value is an Instant
+	 * @since 1.1.0
+	 * 
+	 * @throws JSONException if the key does not exist
+	 */
+	public boolean isInstant(String key) {
+		return checkKey(key) instanceof Instant;
 	}
 	
 	// -- GET --
@@ -295,6 +311,9 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	 * @throws JSONException if the key does not exist, or if the value is not a string
 	 */
 	public String getString(String key) {
+		if(isInstant(key))
+			return getInstant(key).toString();
+		
 		return checkType(this::isString, key, "string");
 	}
 
@@ -307,6 +326,9 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	 * @throws JSONException if the key does not exist, or if the value is not a number
 	 */
 	public Number getNumber(String key) {
+		if(isInstant(key))
+			return getInstant(key).getEpochSecond();
+		
 		return checkType(this::isNumber, key, "number");
 	}
 
@@ -382,7 +404,6 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 		Number number = getNumber(key);
 		
 		try {
-			
 			if(number instanceof BigInteger)
 				return bigint.apply((BigInteger) number);
 
@@ -510,6 +531,19 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	 */
 	public JSONArray getArray(String key) {
 		return checkType(this::isArray, key, "array");
+	}
+
+	/**
+	 * Returns the value as an Instant for a given key
+	 * 
+	 * @param key
+	 * @return the Instant
+	 * @since 1.1.0
+	 * 
+	 * @throws JSONException if the key does not exist, or if the value is not an Instant
+	 */
+	public Instant getInstant(String key) {
+		return checkType(this::isInstant, key, "instant");
 	}
 	
 	// -- OPTIONAL --
@@ -691,7 +725,7 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	}
 
 	/**
-	 * Returns the exact value as a JSONObject for a given key, or the default value if the operation is not possible
+	 * Returns the value as a JSONObject for a given key, or the default value if the operation is not possible
 	 * 
 	 * @param key the key
 	 * @param defaults the default value
@@ -702,7 +736,7 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	}
 
 	/**
-	 * Returns the exact value as a JSONArray for a given key, or the default value if the operation is not possible
+	 * Returns the value as a JSONArray for a given key, or the default value if the operation is not possible
 	 * 
 	 * @param key the key
 	 * @param defaults the default value
@@ -710,6 +744,18 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	 */
 	public JSONArray getArray(String key, JSONArray defaults) {
 		return getOpt(key, this::getArray, defaults);
+	}
+	
+	/**
+	 * Returns the value as an Instant for a given key, or the default value if the operation is not possible
+	 * 
+	 * @param key
+	 * @param defaults
+	 * @return the Instant
+	 * @since 1.1.0
+	 */
+	public Instant getInstant(String key, Instant defaults) {
+		return getOpt(key, this::getInstant, defaults);
 	}
 	
 	// -- SET --
@@ -834,6 +880,17 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 		setCheck(key, value);
 	}
 	
+	/**
+	 * Sets the value at a given key
+	 * 
+	 * @param key the key
+	 * @param value the new value
+	 * @since 1.1.0
+	 */
+	public void set(String key, Instant value) {
+		setCheck(key, value);
+	}
+	
 	// -- STRINGIFY --
 	
 	/**
@@ -929,7 +986,8 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 		if(value instanceof Boolean ||
 			value instanceof String ||
 			value instanceof JSONObject ||
-			value instanceof JSONArray)
+			value instanceof JSONArray ||
+			value instanceof Instant)
 			return value;
 		
 		else if(value instanceof Number) {

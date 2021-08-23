@@ -30,6 +30,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.time.Instant;
 import java.util.regex.Pattern;
 
 /**
@@ -37,7 +38,6 @@ import java.util.regex.Pattern;
  * construct {@link JSONObject JSONObjects} and {@link JSONArray JSONArrays}
  * 
  * @author SyntaxError404
- * @version 1.0.0
  */
 public class JSONParser {
 	
@@ -59,6 +59,7 @@ public class JSONParser {
 	);
 	
 	private final Reader reader;
+	private final JSONOptions options;
 
 	/** whether or not the end of the file has been reached */
 	private boolean eof;
@@ -77,15 +78,20 @@ public class JSONParser {
 	private char previous;
 	/** the current character */
 	private char current;
-	
+
 	/**
 	 * Constructs a new JSONParser from a Reader. The reader is not {@link Reader#close() closed}
 	 * 
 	 * @param reader a reader
+	 * @param options the options for parsing
+	 * @since 1.1.0
 	 */
-	public JSONParser(Reader reader) {
+	public JSONParser(Reader reader, JSONOptions options) {
 		this.reader = reader.markSupported() ?
 			reader : new BufferedReader(reader);
+		
+		this.options = options == null ?
+			JSONOptions.getDefaultOptions() : options;
 		
 		eof = false;
 		back = false;
@@ -102,18 +108,52 @@ public class JSONParser {
 	 * Constructs a new JSONParser from a string
 	 * 
 	 * @param source a string
+	 * @param options the options for parsing
+	 * @since 1.1.0
 	 */
-	public JSONParser(String source) {
-		this(new StringReader(source));
+	public JSONParser(String source, JSONOptions options) {
+		this(new StringReader(source), options);
 	}
 	
 	/**
 	 * Constructs a new JSONParser from an InputStream. The stream is not {@link InputStream#close() closed}
 	 * 
 	 * @param stream a stream
+	 * @param options the options for parsing
+	 * @since 1.1.0
+	 */
+	public JSONParser(InputStream stream, JSONOptions options) {
+		this(new InputStreamReader(stream), options);
+	}
+	
+	/**
+	 * Constructs a new JSONParser from a Reader. The reader is not {@link Reader#close() closed}.
+	 * This uses the {@link JSONOptions#getDefaultOptions() default options}
+	 * 
+	 * @param reader a reader
+	 */
+	public JSONParser(Reader reader) {
+		this(reader, null);
+	}
+	
+	/**
+	 * Constructs a new JSONParser from a string.
+	 * This uses the {@link JSONOptions#getDefaultOptions() default options}
+	 * 
+	 * @param source a string
+	 */
+	public JSONParser(String source) {
+		this(source, null);
+	}
+	
+	/**
+	 * Constructs a new JSONParser from an InputStream. The stream is not {@link InputStream#close() closed}.
+	 * This uses the {@link JSONOptions#getDefaultOptions() default options}
+	 * 
+	 * @param stream a stream
 	 */
 	public JSONParser(InputStream stream) {
-		this(new InputStreamReader(stream));
+		this(stream, null);
 	}
 	
 	private boolean more() {
@@ -518,7 +558,14 @@ public class JSONParser {
 		switch(n) {
 		case '"':
 		case '\'':
-			return nextString(n);
+			String string = nextString(n);
+			
+			if(options.isParseInstants() && options.isParseStringInstants())
+				try {
+					return Instant.parse(string);
+				} catch (Exception e) { }
+			
+			return string;
 		case '{':
 			back();
 			return new JSONObject(this);
@@ -537,8 +584,18 @@ public class JSONParser {
 		if(PATTERN_BOOLEAN.matcher(string).matches())
 			return string.equals("true");
 		
-		if(PATTERN_NUMBER_INTEGER.matcher(string).matches())
-			return new BigInteger(string);
+		if(PATTERN_NUMBER_INTEGER.matcher(string).matches()) {
+			BigInteger bigint = new BigInteger(string);
+
+			if(options.isParseInstants() && options.isParseUnixInstants())
+				try {
+					long unix = bigint.longValueExact();
+					
+					return Instant.ofEpochSecond(unix);
+				} catch (Exception e) { }
+			
+			return bigint;
+		}
 		
 		if(PATTERN_NUMBER_FLOAT.matcher(string).matches())
 			return new BigDecimal(string);
