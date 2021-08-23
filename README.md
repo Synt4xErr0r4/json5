@@ -1,6 +1,8 @@
-# json5 [![javadoc](https://img.shields.io/endpoint?label=javadoc&url=https%3A%2F%2Fjavadoc.syntaxerror.at%2Fjson5%2F%3Fbadge%3Dtrue)](https://javadoc.syntaxerror.at/json5/latest) ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/Synt4xErr0r4/json5/Java%20CI%20with%20Maven)
+# json5 [![javadoc](https://img.shields.io/endpoint?label=javadoc&url=https%3A%2F%2Fjavadoc.syntaxerror.at%2Fjson5%2F%3Fbadge%3Dtrue%26version%3D1.1.0)](https://javadoc.syntaxerror.at/json5/1.1.0) ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/Synt4xErr0r4/json5/Java%20CI%20with%20Maven)
 
-A JSON5 Library for Java (11+)
+A JSON5 Library for Java (11+)  
+
+*This branch contains features of the unreleased [version 1.1.0](https://github.com/json5/json5-spec/milestone/2)*
 
 ## Overview
 
@@ -10,7 +12,7 @@ This is a reference implementation, capable of parsing JSON5 data according to t
 
 ## Getting started
 
-In order to use the code, you can either [download the jar](), or use the Maven dependency:
+In order to use the code, you can either [download the jar](https://github.com/Synt4xErr0r4/json5/releases/download/1.1.0/json5-1.1.0.jar), or use the Maven dependency:
 ```xml
 <!-- Repository -->
 
@@ -24,7 +26,7 @@ In order to use the code, you can either [download the jar](), or use the Maven 
 <dependency>
   <groupId>at.syntaxerror</groupId>
   <artifactId>json5</artifactId>
-  <version>1.0.0</version>
+  <version>1.1.0</version>
 </dependency>
 ```
 
@@ -102,7 +104,7 @@ Calling `json.toString(indentFactor)` is the same as `JSONStringify.toString(jso
 
 The `getXXX` methods are used to read values from the JSON object/ array.  
 The `set` methods are used to override or set values in the JSON object/ array.  
-The `add` methods are used to add values to a JSON array.  
+The `add` and `insert` methods are used to add values to a JSON array.  
 
 Supported data types are:
 - `boolean`
@@ -114,6 +116,7 @@ Supported data types are:
 - `String`
 - `JSONObject`
 - `JSONArray`
+- `Instants` (since `1.1.0`, see below)
 
 The normal `getXXX(String key)` and `getXXX(int index)` methods will throw an exception if the specified key or index does not exist, but the
 `getXXX(String key, XXX defaults)` and `getXXX(int index, XXX defaults)` methods will return the default value (parameter `defaults`) instead.  
@@ -128,6 +131,36 @@ To check if a number can fit into a type, you can use the `getXXXExact` methods,
 Numbers are internally always stored as either a `java.math.BigInteger`, `java.math.BigDecimal`, or `double` (`double` is used for `Infinity` and `NaN` only). Therefore, any method
 returning raw `java.lang.Object`s will return numbers as one of those types. The same behaviour applies to the `getNumber` methods.
 
+## Changelog
+### v1.1.0
+
+Instants (date and time) are now supported. This option can be toggled via the options listed below.
+
+The `JSONOptions` class allows you to customize the behaviour of the parser and stringifyer. It can be created via the builder subclass.  
+You can also set the default options used if the supplied options are `null`, by using the method `setDefaultOptions(JSONOptions)`. The default options must not be `null`.
+
+The following options are currently implemented:
+
+- `parseInstants`: (default `true`, *Parser-only*) ([proposed here](https://github.com/json5/json5-spec/issues/4))  
+    Whether or not instants should be parsed as such.  
+    If this is `false`, `parseStringInstants` and `parseUnixInstants` are ignored
+- `parseStringInstants`: (default `true`, *Parser-only*) ([proposed here](https://github.com/json5/json5-spec/issues/4))  
+    Whether or not string instants (according to [RFC 3339, Section 5.6](https://datatracker.ietf.org/doc/html/rfc3339#section-5.6)) should be parsed as such.  
+    Ignored if `parseInstants` is `false`
+- `parseUnixInstants`: (default `true`, *Parser-only*) ([proposed here](https://github.com/json5/json5-spec/issues/4))  
+    Whether or not unix instants (integers) should be parsed as such.  
+    Ignored if `parseInstants` is `false`
+- `stringifyUnixInstants`: (default `false`, *Stringify-only*) ([proposed here](https://github.com/json5/json5-spec/issues/4))  
+    Whether or not instants should be stringifyed as unix timestamps (integers).  
+    If this is `false`, instants will be stringifyed as strings (according to [RFC 3339, Section 5.6](https://datatracker.ietf.org/doc/html/rfc3339#section-5.6))
+- `allowNaN`: (default `true`, *Parser-only*) ([proposed here](https://github.com/json5/json5-spec/issues/24))  
+    Whether or not `NaN` should be allowed as a number
+- `allowInfinity`: (default `true`, *Parser-only*) ([proposed here](https://github.com/json5/json5-spec/issues/24))  
+    Whether or not `Infinity` should be allowed as a number. This applies to both `+Infinity` and `-Infinity`
+- `allowInvalidSurrogates`: (default `true`, *Parser-only*) ([proposed here](https://github.com/json5/json5-spec/issues/12))  
+    Whether or not invalid unicode surrogate pairs should be allowed
+- `quoteSingle`: (default `false`, *Stringify-only*)  
+    Whether or not string should be single-quoted (`'`) instead of double-quoted (`"`). This also includes a JSONObject's member names
 ## Documentation
 
 The JavaDoc for the latest version can be found [here](https://javadoc.syntaxerror.at/json5/latest).

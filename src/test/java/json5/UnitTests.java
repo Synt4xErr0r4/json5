@@ -157,6 +157,33 @@ class UnitTests {
 		);
 	}
 	
+	/** @since 1.1.0 */
+	@Test
+	void testHex() {
+		assertEquals(
+			0xCAFEBABEL,
+			parse("{a: 0xCAFEBABE}")
+				.getLong("a")
+		);
+	}
+	
+	@Test
+	void testSpecial() {
+		assertTrue(
+			Double.isNaN(
+				parse("{a: +NaN}")
+					.getDouble("a")
+			)
+		);
+		
+		assertTrue(
+			Double.isInfinite(
+				parse("{a: -Infinity}")
+					.getDouble("a")
+			)
+		);
+	}
+	
 	JSONObject parse(String str) {
 		return new JSONObject(new JSONParser(str));
 	}

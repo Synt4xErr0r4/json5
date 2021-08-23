@@ -60,7 +60,7 @@ public class JSONOptions {
 	@Getter
 	@Setter
 	@NonNull
-	private static JSONOptions defaultOptions = new JSONOptions(true, true, true, false);
+	private static JSONOptions defaultOptions = builder().build();
 	
 	/**
 	 * Whether or not instants should be parsed as such.
@@ -68,6 +68,8 @@ public class JSONOptions {
 	 * are ignored
 	 * <p>
 	 * Default: {@code true}
+	 * <p>
+	 * <i>This is a {@link JSONParser Parser}-only option</i>
 	 * 
 	 * @param parseInstants a boolean
 	 * 
@@ -83,6 +85,8 @@ public class JSONOptions {
 	 * Ignored if {@link #isParseInstants()} is {@code false}
 	 * <p>
 	 * Default: {@code true}
+	 * <p>
+	 * <i>This is a {@link JSONParser Parser}-only option</i>
 	 * 
 	 * @param parseStringInstants a boolean
 	 * 
@@ -96,6 +100,8 @@ public class JSONOptions {
 	 * Ignored if {@link #isParseInstants()} is {@code false}
 	 * <p>
 	 * Default: {@code true}
+	 * <p>
+	 * <i>This is a {@link JSONParser Parser}-only option</i>
 	 * 
 	 * @param parseUnixInstants a boolean
 	 * 
@@ -111,6 +117,8 @@ public class JSONOptions {
 	 * (according to <a href="https://datatracker.ietf.org/doc/html/rfc3339#section-5.6">RFC 3339, Section 5.6</a>).
 	 * <p>
 	 * Default: {@code false}
+	 * <p>
+	 * <i>This is a {@link JSONStringify Stringify}-only option</i>
 	 * 
 	 * @param stringifyUnixInstants a boolean
 	 * 
@@ -119,5 +127,63 @@ public class JSONOptions {
 	 */
 	@Builder.Default
 	boolean stringifyUnixInstants = false;
+	
+	/**
+	 * Whether or not {@code NaN} should be allowed as a number
+	 * <p>
+	 * Default: {@code true}
+	 * 
+	 * @param allowNaN a boolean
+	 * 
+	 * @return whether or not {@code NaN} should be allowed
+	 * @since 1.1.0
+	 */
+	@Builder.Default
+	boolean allowNaN = true;
+	
+	/**
+	 * Whether or not {@code Infinity} should be allowed as a number.
+	 * This applies to both {@code +Infinity} and {@code -Infinity}
+	 * <p>
+	 * Default: {@code true}
+	 * 
+	 * @param allowInfinity a boolean
+	 * 
+	 * @return whether or not {@code Infinity} should be allowed
+	 * @since 1.1.0
+	 */
+	@Builder.Default
+	boolean allowInfinity = true;
+	
+	/**
+	 * Whether or not invalid unicode surrogate pairs should be allowed
+	 * <p>
+	 * Default: {@code true}
+	 * <p>
+	 * <i>This is a {@link JSONParser Parser}-only option</i>
+	 * 
+	 * @param allowInvalidSurrogates a boolean
+	 * 
+	 * @return whether or not invalid unicode surrogate pairs should be allowed
+	 * @since 1.1.0
+	 */
+	@Builder.Default
+	boolean allowInvalidSurrogates = true;
+	
+	/**
+	 * Whether or not string should be single-quoted ({@code '}) instead of double-quoted ({@code "}).
+	 * This also includes a {@link JSONObject JSONObject's} member names
+	 * <p>
+	 * Default: {@code false}
+	 * <p>
+	 * <i>This is a {@link JSONStringify Stringify}-only option</i>
+	 * 
+	 * @param quoteSingle a boolean
+	 * 
+	 * @return whether or not string should be single-quoted
+	 * @since 1.1.0
+	 */
+	@Builder.Default
+	boolean quoteSingle = false;
 	
 }

@@ -765,130 +765,11 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	 * 
 	 * @param key the key
 	 * @param value the new value
+	 * @return this JSONObject
 	 */
-	public void set(String key, Object value) {
+	public JSONObject set(String key, Object value) {
 		values.put(key, sanitize(value));
-	}
-
-	private void setCheck(String key, Object value) {
-		values.put(key, sanitize(checkNull(value)));
-	}
-
-	/**
-	 * Sets the value at a given key
-	 * 
-	 * @param key the key
-	 * @param value the new value
-	 */
-	public void set(String key, boolean value) {
-		setCheck(key, value);
-	}
-
-	/**
-	 * Sets the value at a given key
-	 * 
-	 * @param key the key
-	 * @param value the new value
-	 */
-	public void set(String key, String value) {
-		setCheck(key, value);
-	}
-
-	/**
-	 * Sets the value at a given key
-	 * 
-	 * @param key the key
-	 * @param value the new value
-	 */
-	public void set(String key, Number value) {
-		setCheck(key, value);
-	}
-
-	/**
-	 * Sets the value at a given key
-	 * 
-	 * @param key the key
-	 * @param value the new value
-	 */
-	public void set(String key, byte value) {
-		setCheck(key, value);
-	}
-	/**
-	 * Sets the value at a given key
-	 * 
-	 * @param key the key
-	 * @param value the new value
-	 */
-	public void set(String key, short value) {
-		setCheck(key, value);
-	}
-	/**
-	 * Sets the value at a given key
-	 * 
-	 * @param key the key
-	 * @param value the new value
-	 */
-	public void set(String key, int value) {
-		setCheck(key, value);
-	}
-	/**
-	 * Sets the value at a given key
-	 * 
-	 * @param key the key
-	 * @param value the new value
-	 */
-	public void set(String key, long value) {
-		setCheck(key, value);
-	}
-
-	/**
-	 * Sets the value at a given key
-	 * 
-	 * @param key the key
-	 * @param value the new value
-	 */
-	public void set(String key, float value) {
-		setCheck(key, value);
-	}
-	/**
-	 * Sets the value at a given key
-	 * 
-	 * @param key the key
-	 * @param value the new value
-	 */
-	public void set(String key, double value) {
-		setCheck(key, value);
-	}
-
-	/**
-	 * Sets the value at a given key
-	 * 
-	 * @param key the key
-	 * @param value the new value
-	 */
-	public void set(String key, JSONObject value) {
-		setCheck(key, value);
-	}
-
-	/**
-	 * Sets the value at a given key
-	 * 
-	 * @param key the key
-	 * @param value the new value
-	 */
-	public void set(String key, JSONArray value) {
-		setCheck(key, value);
-	}
-	
-	/**
-	 * Sets the value at a given key
-	 * 
-	 * @param key the key
-	 * @param value the new value
-	 * @since 1.1.0
-	 */
-	public void set(String key, Instant value) {
-		setCheck(key, value);
+		return this;
 	}
 	
 	// -- STRINGIFY --
@@ -956,19 +837,6 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	
 	private static JSONException mismatch(String key, String type) {
 		return new JSONException("JSONObject[" + JSONStringify.quote(key) +"] is not of type " + type);
-	}
-	
-	/**
-	 * Checks if a value is {@code null}
-	 * 
-	 * @param value the value
-	 * @return the non-{@code null} value
-	 */
-	static Object checkNull(Object value) {
-		if(value == null)
-			throw new JSONException("Value is null");
-		
-		return value;
 	}
 	
 	/**

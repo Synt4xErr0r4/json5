@@ -195,7 +195,7 @@ public class JSONStringify {
 			if(indentFactor > 0)
 				sb.append('\n').append(childIndent);
 			
-			sb.append(quote(entry.getKey()))
+			sb.append(quote(entry.getKey(), options))
 				.append(':');
 			
 			if(indentFactor > 0)
@@ -247,7 +247,7 @@ public class JSONStringify {
 			return toString((JSONArray) value, indent, indentFactor, options);
 		
 		if(value instanceof String)
-			return quote((String) value);
+			return quote((String) value, options);
 		
 		if(value instanceof Instant) {
 			Instant instant = (Instant) value;
@@ -255,32 +255,49 @@ public class JSONStringify {
 			if(options.isStringifyUnixInstants())
 				return String.valueOf(instant.getEpochSecond());
 			
-			return quote(instant.toString());
+			return quote(instant.toString(), options);
+		}
+		
+		if(value instanceof Double) {
+			double d = (Double) value;
+			
+			if(!options.isAllowNaN() && Double.isNaN(d))
+				throw new JSONException("Illegal NaN in JSON");
+
+			if(!options.isAllowInfinity() && Double.isInfinite(d))
+				throw new JSONException("Illegal Infinity in JSON");
 		}
 		
 		return String.valueOf(value);
 	}
 	
-	/**
-	 * Converts a string into a valid JSON-string, enclosed by double quotes ({@code "})
-	 * 
-	 * @param string the string
-	 * @return the quoted string
-	 */
 	static String quote(String string) {
+		return quote(string, null);
+	}
+	
+	private static String quote(String string, JSONOptions options) {		
+		options = options == null ?
+				JSONOptions.getDefaultOptions() : options;
+		
 		if(string == null || string.isEmpty())
-			return "\"\"";
+			return options.isQuoteSingle() ? "''" : "\"\"";
+
+		final char qt = options.isQuoteSingle() ? '\'' : '"';
 		
 		StringBuilder quoted = new StringBuilder(string.length() + 2);
 		
-		quoted.append('"');
+		quoted.append(qt);
 		
 		for(char c : string.toCharArray()) {
-			switch(c) {
-			case '\\':
-			case '"':
+			if(c == qt) {
 				quoted.append('\\');
 				quoted.append(c);
+				continue;
+			}
+			
+			switch(c) {
+			case '\\':
+				quoted.append("\\\\");
 				break;
 			case '\b':
 				quoted.append("\\b");
@@ -314,13 +331,13 @@ public class JSONStringify {
 					quoted.append(String.format("%04X", c));
 					break;
 				default:
-					quoted.append((char) c);
+					quoted.append(c);
 					break;
 				}
 			}
 		}
 		
-		quoted.append('"');
+		quoted.append(qt);
 		
 		return quoted.toString();
 	}

@@ -87,7 +87,7 @@ public class JSONArray implements Iterable<Object> {
 
 			Object value = parser.nextValue();
 			
-			values.add(value);
+			values.add((Object) value);
 			
 			c = parser.nextClean();
 			
@@ -118,7 +118,7 @@ public class JSONArray implements Iterable<Object> {
 			else if(value instanceof JSONArray)
 				value = ((JSONArray) value).toList();
 			
-			list.add(value);
+			list.add((Object) value);
 		}
 		
 		return list;
@@ -723,108 +723,11 @@ public class JSONArray implements Iterable<Object> {
 	 * Adds a value to the JSONArray
 	 *
 	 * @param value the new value
+	 * @return this JSONArray
 	 */
-	public void add(Object value) {
+	public JSONArray add(Object value) {
 		values.add(JSONObject.sanitize(value));
-	}
-	
-	private void addCheck(Object value) {
-		values.add(JSONObject.checkNull(value));
-	}
-
-	/**
-	 * Adds a value to the JSONArray
-	 *
-	 * @param value the new value
-	 */
-	public void add(boolean value) {
-		addCheck(value);
-	}
-
-	/**
-	 * Adds a value to the JSONArray
-	 *
-	 * @param value the new value
-	 */
-	public void add(String value) {
-		addCheck(value);
-	}
-
-	/**
-	 * Adds a value to the JSONArray
-	 *
-	 * @param value the new value
-	 */
-	public void add(Number value) {
-		addCheck(value);
-	}
-
-	/**
-	 * Adds a value to the JSONArray
-	 *
-	 * @param value the new value
-	 */
-	public void add(byte value) {
-		addCheck(value);
-	}
-	/**
-	 * Adds a value to the JSONArray
-	 *
-	 * @param value the new value
-	 */
-	public void add(short value) {
-		addCheck(value);
-	}
-	/**
-	 * Adds a value to the JSONArray
-	 *
-	 * @param value the new value
-	 */
-	public void add(int value) {
-		addCheck(value);
-	}
-	/**
-	 * Adds a value to the JSONArray
-	 *
-	 * @param value the new value
-	 */
-	public void add(long value) {
-		addCheck(value);
-	}
-
-	/**
-	 * Adds a value to the JSONArray
-	 *
-	 * @param value the new value
-	 */
-	public void add(float value) {
-		addCheck(value);
-	}
-	/**
-	 * Adds a value to the JSONArray
-	 *
-	 * @param value the new value
-	 */
-	public void add(double value) {
-		addCheck(value);
-	}
-
-	/**
-	 * Adds a value to the JSONArray
-	 *
-	 * @param value the new value
-	 */
-	public void add(JSONObject value) {
-		addCheck(value);
-	}
-
-	/**
-	 * Adds a value to the JSONArray
-	 *
-	 * @param value the new value
-	 */
-	public void add(JSONArray value) {
-		addCheck(value);
+		return this;
 	}
 	
 	// -- INSERT --
@@ -834,137 +737,15 @@ public class JSONArray implements Iterable<Object> {
 	 *
 	 * @param index the index
 	 * @param value the new value
+	 * @return this JSONArray
 	 * @since 1.1.0
 	 */
-	public void insert(int index, Object value) {
+	public JSONArray insert(int index, Object value) {
 		if(index < 0 || index > length())
 			throw new JSONException("JSONArray[" + index + "] is out of bounds");
 		
 		values.add(index, JSONObject.sanitize(value));
-	}
-	
-	private void insertCheck(int index, Object value) {
-		if(index < 0 || index > length())
-			throw new JSONException("JSONArray[" + index + "] is out of bounds");
-		
-		values.add(index, JSONObject.checkNull(value));
-	}
-
-	/**
-	 * Inserts a value to the JSONArray at a given index
-	 *
-	 * @param index the index
-	 * @param value the new value
-	 * @since 1.1.0
-	 */
-	public void insert(int index, boolean value) {
-		insertCheck(index, value);
-	}
-
-	/**
-	 * Inserts a value to the JSONArray at a given index
-	 *
-	 * @param index the index
-	 * @param value the new value
-	 * @since 1.1.0
-	 */
-	public void insert(int index, String value) {
-		insertCheck(index, value);
-	}
-
-	/**
-	 * Inserts a value to the JSONArray at a given index
-	 *
-	 * @param index the index
-	 * @param value the new value
-	 * @since 1.1.0
-	 */
-	public void insert(int index, Number value) {
-		insertCheck(index, value);
-	}
-
-	/**
-	 * Inserts a value to the JSONArray at a given index
-	 *
-	 * @param index the index
-	 * @param value the new value
-	 * @since 1.1.0
-	 */
-	public void insert(int index, byte value) {
-		insertCheck(index, value);
-	}
-	/**
-	 * Inserts a value to the JSONArray at a given index
-	 *
-	 * @param index the index
-	 * @param value the new value
-	 * @since 1.1.0
-	 */
-	public void insert(int index, short value) {
-		insertCheck(index, value);
-	}
-	/**
-	 * Inserts a value to the JSONArray at a given index
-	 *
-	 * @param index the index
-	 * @param value the new value
-	 * @since 1.1.0
-	 */
-	public void insert(int index, int value) {
-		insertCheck(index, value);
-	}
-	/**
-	 * Inserts a value to the JSONArray at a given index
-	 *
-	 * @param index the index
-	 * @param value the new value
-	 * @since 1.1.0
-	 */
-	public void insert(int index, long value) {
-		insertCheck(index, value);
-	}
-
-	/**
-	 * Inserts a value to the JSONArray at a given index
-	 *
-	 * @param index the index
-	 * @param value the new value
-	 * @since 1.1.0
-	 */
-	public void insert(int index, float value) {
-		insertCheck(index, value);
-	}
-	/**
-	 * Inserts a value to the JSONArray at a given index
-	 *
-	 * @param index the index
-	 * @param value the new value
-	 * @since 1.1.0
-	 */
-	public void insert(int index, double value) {
-		insertCheck(index, value);
-	}
-
-	/**
-	 * Inserts a value to the JSONArray at a given index
-	 *
-	 * @param index the index
-	 * @param value the new value
-	 * @since 1.1.0
-	 */
-	public void insert(int index, JSONObject value) {
-		insertCheck(index, value);
-	}
-
-	/**
-	 * Inserts a value to the JSONArray at a given index
-	 *
-	 * @param index the index
-	 * @param value the new value
-	 * @since 1.1.0
-	 */
-	public void insert(int index, JSONArray value) {
-		insertCheck(index, value);
+		return this;
 	}
 	
 	// -- SET --
@@ -974,121 +755,12 @@ public class JSONArray implements Iterable<Object> {
 	 * 
 	 * @param index the index
 	 * @param value the new value
+	 * @return this JSONArray
 	 */
-	public void set(int index, Object value) {
+	public JSONArray set(int index, Object value) {
 		checkIndex(index);
 		values.set(index, JSONObject.sanitize(value));
-	}
-
-	private void setCheck(int index, Object value) {
-		checkIndex(index);
-		values.set(index, JSONObject.checkNull(value));
-	}
-
-	/**
-	 * Sets the value at a given index
-	 * 
-	 * @param index the index
-	 * @param value the new value
-	 */
-	public void set(int index, boolean value) {
-		setCheck(index, value);
-	}
-
-	/**
-	 * Sets the value at a given index
-	 * 
-	 * @param index the index
-	 * @param value the new value
-	 */
-	public void set(int index, String value) {
-		setCheck(index, value);
-	}
-
-	/**
-	 * Sets the value at a given index
-	 * 
-	 * @param index the index
-	 * @param value the new value
-	 */
-	public void set(int index, Number value) {
-		setCheck(index, value);
-	}
-
-	/**
-	 * Sets the value at a given index
-	 * 
-	 * @param index the index
-	 * @param value the new value
-	 */
-	public void set(int index, byte value) {
-		setCheck(index, value);
-	}
-	/**
-	 * Sets the value at a given index
-	 * 
-	 * @param index the index
-	 * @param value the new value
-	 */
-	public void set(int index, short value) {
-		setCheck(index, value);
-	}
-	/**
-	 * Sets the value at a given index
-	 * 
-	 * @param index the index
-	 * @param value the new value
-	 */
-	public void set(int index, int value) {
-		setCheck(index, value);
-	}
-	/**
-	 * Sets the value at a given index
-	 * 
-	 * @param index the index
-	 * @param value the new value
-	 */
-	public void set(int index, long value) {
-		setCheck(index, value);
-	}
-
-	/**
-	 * Sets the value at a given index
-	 * 
-	 * @param index the index
-	 * @param value the new value
-	 */
-	public void set(int index, float value) {
-		setCheck(index, value);
-	}
-	/**
-	 * Sets the value at a given index
-	 * 
-	 * @param index the index
-	 * @param value the new value
-	 */
-	public void set(int index, double value) {
-		setCheck(index, value);
-	}
-
-	/**
-	 * Sets the value at a given index
-	 * 
-	 * @param index the index
-	 * @param value the new value
-	 */
-	public void set(int index, JSONObject value) {
-		setCheck(index, value);
-	}
-
-	/**
-	 * Sets the value at a given index
-	 * 
-	 * @param index the index
-	 * @param value the new value
-	 */
-	public void set(int index, JSONArray value) {
-		setCheck(index, value);
+		return this;
 	}
 	
 	// -- STRINGIFY --

@@ -374,6 +374,20 @@ public class JSONParser {
 		return (char) codepoint;
 	}
 	
+	private void checkSurrogate(char hi, char lo) {
+		if(options.isAllowInvalidSurrogates())
+			return;
+		
+		if(!Character.isHighSurrogate(hi) || !Character.isLowSurrogate(lo))
+			return;
+		
+		if(!Character.isSurrogatePair(hi, lo))
+			throw syntaxError(String.format(
+				"Invalid surrogate pair: U+%04X and U+%04X",
+				hi, lo
+			));
+	}
+	
 	// https://spec.json5.org/#prod-JSON5String
 	private String nextString(char quote) {
 		StringBuilder result = new StringBuilder();
@@ -381,11 +395,15 @@ public class JSONParser {
 		String value;
 		int codepoint;
 		
+		char n = 0;
+		char prev;
+		
 		while(true) {
 			if(!more())
 				throw syntaxError("Unexpected end of data");
 			
-			char n = next();
+			prev = n;
+			n = next();
 			
 			if(n == quote)
 				break;
@@ -401,6 +419,7 @@ public class JSONParser {
 						next();
 					
 					// escaped line terminator/ line continuation
+					continue;
 				}
 				
 				else switch(n) {
@@ -408,25 +427,25 @@ public class JSONParser {
 				case '"':
 				case '\\':
 					result.append(n);
-					break;
+					continue;
 				case 'b':
 					result.append('\b');
-					break;
+					continue;
 				case 'f':
 					result.append('\f');
-					break;
+					continue;
 				case 'n':
 					result.append('\n');
-					break;
+					continue;
 				case 'r':
 					result.append('\r');
-					break;
+					continue;
 				case 't':
 					result.append('\t');
-					break;
+					continue;
 				case 'v': // Vertical Tab
 					result.append((char) 0x0B);
-					break;
+					continue;
 					
 				case '0': // NUL
 					char p = peek();
@@ -435,7 +454,7 @@ public class JSONParser {
 						throw syntaxError("Illegal escape sequence '\\0" + p + "'");
 					
 					result.append((char) 0);
-					break;
+					continue;
 					
 				case 'x': // Hex escape sequence
 					value = "";
@@ -453,21 +472,24 @@ public class JSONParser {
 						codepoint |= hex << ((1 - i) << 2);
 					}
 					
-					result.append((char) codepoint);
+					n = (char) codepoint;
 					break;
 					
 				case 'u': // Unicode escape sequence
-					result.append(unicodeEscape(false, false));
+					n = unicodeEscape(false, false);
 					break;
 				
 				default:
 					if(isDecimalDigit(n))
 						throw syntaxError("Illegal escape sequence '\\" + n + "'");
 					
-					result.append(n);
+					break;
 				}
 			}
-			else result.append(n);
+			
+			checkSurrogate(prev, n);
+			
+			result.append(n);
 		}
 		
 		return result.toString();
@@ -509,12 +531,14 @@ public class JSONParser {
 	public String nextMemberName() {
 		StringBuilder result = new StringBuilder();
 		
+		char prev;
 		char n = next();
 		
 		if(n == '"' || n == '\'')
 			return nextString(n);
 
 		back();
+		n = 0;
 		
 		while(true) {
 			if(!more())
@@ -522,6 +546,7 @@ public class JSONParser {
 
 			boolean part = result.length() > 0;
 			
+			prev = n;
 			n = next();
 			
 			if(n == '\\') { // unicode escape sequence
@@ -536,6 +561,8 @@ public class JSONParser {
 				back();
 				break;
 			}
+			
+			checkSurrogate(prev, n);
 			
 			result.append(n);
 		}
@@ -625,9 +652,15 @@ public class JSONParser {
 			
 			switch(special) {
 			case "NaN":
+				if(!options.isAllowNaN())
+					throw syntaxError("NaN is not allowed");
+				
 				d = Double.NaN;
 				break;
 			case "Infinity":
+				if(!options.isAllowInfinity())
+					throw syntaxError("Infinity is not allowed");
+				
 				d = Double.POSITIVE_INFINITY;
 				break;
 			}
