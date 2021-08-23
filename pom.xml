@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>at.syntaxerror</groupId>
 	<artifactId>json5</artifactId>
-	<version>1.0.0</version>
+	<version>1.1.0</version>
 	<packaging>jar</packaging>
 	
 	<name>JSON5 for Java</name>
@@ -38,15 +38,32 @@
 	
 	<build>
 		<sourceDirectory>src/main/java</sourceDirectory>
-		<testSourceDirectory>src/test/java</testSourceDirectory>
 	
 		<plugins>
+			<plugin>
+		    	<groupId>org.projectlombok</groupId>
+	    		<artifactId>lombok-maven-plugin</artifactId>
+    			<version>1.18.20.0</version>
+    			<configuration>
+    				<encoding>UTF-8</encoding>
+    				<sourceDirectory>src/main/java</sourceDirectory>
+    				<outputDirectory>target/delombok</outputDirectory>
+    			</configuration>
+		    </plugin>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.8.1</version>
 				<configuration>
+					<source>target/delombok</source>
 					<release>11</release>
-					<compilerArgs></compilerArgs>		
+					<compilerArgs></compilerArgs>
+					<annotationProcessorPaths>
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+							<version>1.18.20</version>
+						</path>
+					</annotationProcessorPaths>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -59,6 +76,9 @@
 						</goals>
 					</execution>
 				</executions>
+				<configuration>
+					<sourcepath>target/delombok</sourcepath>
+				</configuration>
 			</plugin>
 			<plugin>
 				<artifactId>maven-source-plugin</artifactId>
@@ -87,6 +107,13 @@
 		    <artifactId>junit-jupiter-api</artifactId>
 		    <version>5.7.2</version>
 		    <scope>test</scope>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<version>1.18.20</version>
+			<scope>provided</scope>
 		</dependency>
 	</dependencies>
 	

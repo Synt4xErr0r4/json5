@@ -536,7 +536,7 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	/**
 	 * Returns the value as an Instant for a given key
 	 * 
-	 * @param key
+	 * @param key the key
 	 * @return the Instant
 	 * @since 1.1.0
 	 * 
@@ -749,8 +749,8 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	/**
 	 * Returns the value as an Instant for a given key, or the default value if the operation is not possible
 	 * 
-	 * @param key
-	 * @param defaults
+	 * @param key the key
+	 * @param defaults the default value
 	 * @return the Instant
 	 * @since 1.1.0
 	 */
