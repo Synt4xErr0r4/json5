@@ -1,4 +1,4 @@
-# json5 [![javadoc](https://img.shields.io/endpoint?label=javadoc&url=https%3A%2F%2Fjavadoc.syntaxerror.at%2Fjson5%2F%3Fbadge%3Dtrue%26version%3D1.1.0)](https://javadoc.syntaxerror.at/json5/1.1.0) ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/Synt4xErr0r4/json5/Java%20CI%20with%20Maven)
+# json5 [![javadoc](https://img.shields.io/endpoint?label=javadoc&url=https%3A%2F%2Fjavadoc.syntaxerror.at%2Fjson5%2F%3Fbadge%3Dtrue%26version%3Dlatest)](https://javadoc.syntaxerror.at/json5/latest) ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/Synt4xErr0r4/json5/Java%20CI%20with%20Maven)
 
 A JSON5 Library for Java (11+)  
 
@@ -12,7 +12,11 @@ This is a reference implementation, capable of parsing JSON5 data according to t
 
 ## Getting started
 
+<<<<<<< HEAD
 In order to use the code, you can either [download the jar](https://github.com/Synt4xErr0r4/json5/releases/download/1.1.0/json5-1.1.0.jar), or use the Maven dependency:
+=======
+In order to use the code, you can either [download the jar](https://github.com/Synt4xErr0r4/json5/releases/download/1.0.0/json5-1.0.0.jar), or use the Maven dependency:
+>>>>>>> branch 'main' of https://github.com/Synt4xErr0r4/json5.git
 ```xml
 <!-- Repository -->
 
