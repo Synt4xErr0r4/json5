@@ -2,8 +2,6 @@
 
 A JSON5 Library for Java (11+)  
 
-*This branch contains features of the unreleased [version 1.1.0](https://github.com/json5/json5-spec/milestone/2)*
-
 ## Overview
 
 The [JSON5 Standard](https://json5.org/) tries to make JSON more human-readable  
@@ -12,7 +10,7 @@ This is a reference implementation, capable of parsing JSON5 data according to t
 
 ## Getting started
 
-In order to use the code, you can either [download the jar](https://github.com/Synt4xErr0r4/json5/releases/download/1.1.0/json5-1.1.0.jar), or use the Maven dependency:
+In order to use the code, you can either [download the jar](https://github.com/Synt4xErr0r4/json5/releases/download/1.2.0/json5-1.2.0.jar), or use the Maven dependency:
 ```xml
 <!-- Repository -->
 
@@ -26,7 +24,7 @@ In order to use the code, you can either [download the jar](https://github.com/S
 <dependency>
   <groupId>at.syntaxerror</groupId>
   <artifactId>json5</artifactId>
-  <version>1.1.0</version>
+  <version>1.2.0</version>
 </dependency>
 ```
 
@@ -113,6 +111,7 @@ Supported data types are:
 - `int`
 - `float`
 - `double`
+- `Number` (any sub-class)
 - `String`
 - `JSONObject`
 - `JSONArray`
@@ -121,7 +120,7 @@ Supported data types are:
 The normal `getXXX(String key)` and `getXXX(int index)` methods will throw an exception if the specified key or index does not exist, but the
 `getXXX(String key, XXX defaults)` and `getXXX(int index, XXX defaults)` methods will return the default value (parameter `defaults`) instead.  
   
-The `set(int index, XXX value)` method will also throw an exception if the index does not exist. You can use `add(XXX value)` instead to append a value to the list.
+The `set(int index, Object value)` method will also throw an exception if the index does not exist. You can use `add(Object value)` instead to append a value to the list.
 
 The getter-methods for numbers always return a rounded or truncated result.
 If the actual number is too large to fit into the requested type, the upper bits are truncated (e.g. `int` to `byte` truncates the upper 24 bits).  
@@ -161,6 +160,14 @@ The following options are currently implemented:
     Whether or not invalid unicode surrogate pairs should be allowed
 - `quoteSingle`: (default `false`, *Stringify-only*)  
     Whether or not string should be single-quoted (`'`) instead of double-quoted (`"`). This also includes a JSONObject's member names
+
+### v1.2.0
+
+- added `clear()` method 
+	removes all values from an object/array
+- added `remove(String key)` and `remove(int index)` methods
+	remove a certain key/index from an object/array
+
 ## Documentation
 
 The JavaDoc for the latest version can be found [here](https://javadoc.syntaxerror.at/json5/latest).

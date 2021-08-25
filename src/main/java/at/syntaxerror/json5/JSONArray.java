@@ -150,6 +150,28 @@ public class JSONArray implements Iterable<Object> {
 		return values.size();
 	}
 	
+	/**
+	 * Removes all values from this JSONArray
+	 * 
+	 * @since 1.2.0
+	 */
+	public void clear() {
+		values.clear();
+	}
+	
+	/**
+	 * Removes the value at an index from a JSONArray
+	 * 
+	 * @param index the index to be removed
+	 * @since 1.2.0
+	 * 
+	 * @throws JSONException if the index does not exist
+	 */
+	public void remove(int index) {
+		checkIndex(index);
+		values.remove(index);
+	}
+	
 	// -- CHECK --
 
 	/**

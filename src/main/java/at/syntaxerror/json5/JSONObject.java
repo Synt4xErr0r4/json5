@@ -176,6 +176,28 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 		return values.size();
 	}
 	
+	/**
+	 * Removes all values from this JSONObject
+	 * 
+	 * @since 1.2.0
+	 */
+	public void clear() {
+		values.clear();
+	}
+	
+	/**
+	 * Removes a key from a JSONObject
+	 * 
+	 * @param key the key to be removed
+	 * @since 1.2.0
+	 * 
+	 * @throws JSONException if the key does not exist
+	 */
+	public void remove(String key) {
+		checkKey(key);
+		values.remove(key);
+	}
+	
 	// -- CHECK --
 	
 	/**
