@@ -12,11 +12,7 @@ This is a reference implementation, capable of parsing JSON5 data according to t
 
 ## Getting started
 
-<<<<<<< HEAD
 In order to use the code, you can either [download the jar](https://github.com/Synt4xErr0r4/json5/releases/download/1.1.0/json5-1.1.0.jar), or use the Maven dependency:
-=======
-In order to use the code, you can either [download the jar](https://github.com/Synt4xErr0r4/json5/releases/download/1.0.0/json5-1.0.0.jar), or use the Maven dependency:
->>>>>>> branch 'main' of https://github.com/Synt4xErr0r4/json5.git
 ```xml
 <!-- Repository -->
 
