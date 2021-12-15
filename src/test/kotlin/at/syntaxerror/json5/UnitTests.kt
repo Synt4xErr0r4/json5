@@ -68,7 +68,7 @@ internal class UnitTests {
     json["e"] = JSONArray()
     json["f"] = Double.NaN
     json["g"] = 123e+45
-    json["h"] = -123e45.toFloat()
+    json["h"] = (-123e45).toFloat()
     json["i"] = 123L
     json["j"] = "Lorem Ipsum"
     json["k"] = Instant.now()

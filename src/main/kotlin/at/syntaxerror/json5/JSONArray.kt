@@ -29,18 +29,14 @@ package at.syntaxerror.json5
  *
  * @author SyntaxError404
  */
-class JSONArray() : Iterable<Any?> {
-  private val values: MutableList<Any>
-  /**
-   * Constructs a new JSONArray
-   */
-  init {
-    values = ArrayList()
-  }
+class JSONArray(
+  private val values: MutableList<Any?> = mutableListOf()
+) : Iterable<Any?> by values {
+
   /**
    * Constructs a new JSONArray from a string
    */
-  constructor(source: String?) : this(JSONParser(source)) {}
+  constructor(source: String?) : this(JSONParser(source))
   /**
    * Constructs a new JSONArray from a JSONParser
    */
@@ -52,9 +48,9 @@ class JSONArray() : Iterable<Any?> {
     while (true) {
       c = parser.nextClean()
       when (c) {
-        0    -> throw parser.syntaxError("A JSONArray must end with ']'")
-        ']'  -> return
-        else -> parser.back()
+        Char.MIN_VALUE -> throw parser.syntaxError("A JSONArray must end with ']'")
+        ']'            -> return
+        else           -> parser.back()
       }
       val value = parser.nextValue()
       values.add(value)
@@ -71,28 +67,16 @@ class JSONArray() : Iterable<Any?> {
    * Converts the JSONArray into a list. All JSONObjects and JSONArrays contained within this
    * JSONArray will be converted into their Map or List form as well
    */
-  fun toList(): List<Any> {
-    val list: MutableList<Any> = ArrayList()
-    for (value in this) {
-      if (value is JSONObject) {
-        value = value.toMap()
-      } else if (value is JSONArray) {
-        value = value.toList()
+  fun toList(): List<Any?> {
+    return values.map { value ->
+      when (value) {
+        is JSONObject -> value.toMap()
+        is JSONArray  -> value.toList()
+        else          -> value
       }
-      list.add(value)
     }
-    return list
   }
 
-  override fun iterator(): Iterator<Any> {
-    return values.iterator()
-  }
-  /**
-   * Returns the number of values in the JSONArray
-   */
-  fun length(): Int {
-    return values.size
-  }
   /**
    * Converts the JSONArray into its string representation. The indentation factor enables
    * pretty-printing and defines how many spaces (' ') should be placed before each value. A factor
