@@ -21,155 +21,149 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package at.syntaxerror.json5;
+package at.syntaxerror.json5
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.time.Instant;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import java.time.Instant
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 
 /**
  * @author SyntaxError404
  */
-class UnitTests {
-
-  @BeforeAll
-  static void setUpBeforeClass() {
-    // compile regex patterns
-    JSONParser.class.toString();
+internal class UnitTests {
+  @Test
+  fun testDoubleQuoted() {
+    Assertions.assertEquals(
+      "Test \" 123", parse("{ a: \"Test \\\" 123\" }")
+        .getString("a")
+    )
   }
 
   @Test
-  void testDoubleQuoted() {
-		assertEquals("Test \" 123", parse("{ a: \"Test \\\" 123\" }")
-				.getString("a"));
+  fun testSingleQuoted() {
+    Assertions.assertEquals(
+      "Test ' 123", parse("{ a: 'Test \\' 123' }")
+        .getString("a")
+    )
   }
 
   @Test
-  void testSingleQuoted() {
-		assertEquals("Test ' 123", parse("{ a: 'Test \\' 123' }")
-				.getString("a"));
+  fun testMixedQuoted() {
+    Assertions.assertEquals(
+      "Test ' 123", parse("{ a: \"Test \\' 123\" }")
+        .getString("a")
+    )
   }
 
   @Test
-  void testMixedQuoted() {
-		assertEquals("Test ' 123", parse("{ a: \"Test \\' 123\" }")
-				.getString("a"));
+  fun testStringify() {
+    val testOptions = JSONOptions.defaultOptions
+    testOptions.stringifyUnixInstants = true
+    val json = JSONObject()
+    json["a"] = null
+    json["b"] = false
+    json["c"] = true
+    json["d"] = JSONObject()
+    json["e"] = JSONArray()
+    json["f"] = Double.NaN
+    json["g"] = 123e+45
+    json["h"] = -123e45.toFloat()
+    json["i"] = 123L
+    json["j"] = "Lorem Ipsum"
+    json["k"] = Instant.now()
+    Assertions.assertEquals(
+      json.toString(),
+      parse(json.toString()).toString()
+    )
   }
 
   @Test
-  void testStringify() {
-    final var testOptions = JSONOptions.defaultOptions;
-    testOptions.stringifyUnixInstants = true;
-
-    JSONObject json = new JSONObject();
-
-    json.set("a", null);
-    json.set("b", false);
-    json.set("c", true);
-    json.set("d", new JSONObject());
-    json.set("e", new JSONArray());
-    json.set("f", Double.NaN);
-    json.set("g", 123e+45);
-    json.set("h", (float) -123e45);
-    json.set("i", 123L);
-    json.set("j", "Lorem Ipsum");
-    json.set("k", Instant.now());
-
-    assertEquals(
-        json.toString(),
-        parse(json.toString()).toString()
-    );
+  fun testEscapes() {
+    Assertions.assertEquals(
+      "\n\r\u000c\b\t\u000B\u0000\u12Fa\u007F",
+      parse("{ a: \"\\n\\r\\u000c\\b\\t\\v\\0\\u12Fa\\x7F\" }")
+        .getString("a")
+    )
   }
 
   @Test
-  void testEscapes() {
-    assertEquals("\n\r\f\b\t\u000B\0\u12Fa\u007F",
-        parse("{ a: \"\\n\\r\\f\\b\\t\\v\\0\\u12Fa\\x7F\" }")
-            .getString("a"));
-  }
-
-  @Test
-  void testMemberName() {
+  fun testMemberName() {
     // note: requires UTF-8
-    assertTrue(
-        parse("{ $Lorem\\u0041_Ipsum123指事字: 0 }")
-            .has("$LoremA_Ipsum123指事字")
-    );
+    Assertions.assertTrue(
+      parse("{ \$Lorem\\u0041_Ipsum123指事字: 0 }")
+        .has("\$LoremA_Ipsum123指事字")
+    )
   }
 
   @Test
-  void testMultiComments() {
-    assertTrue(
-        parse("/**/{/**/a/**/:/**/'b'/**/}/**/")
-            .has("a")
-    );
+  fun testMultiComments() {
+    Assertions.assertTrue(
+      parse("/**/{/**/a/**/:/**/'b'/**/}/**/")
+        .has("a")
+    )
   }
 
   @Test
-  void testSingleComments() {
-    assertTrue(
-        parse("// test\n{ // lorem ipsum\n a: 'b'\n// test\n}// test")
-            .has("a")
-    );
-  }
-
-  /**
-   * @since 1.1.0
-   */
-  @Test
-  void testInstant() {
-    assertTrue(
-        parse("{a:1338150759534}")
-            .isInstant("a")
-    );
-
-    assertEquals(
-        parse("{a:1338150759534}")
-            .getLong("a"),
-        1338150759534L
-    );
-
-    assertEquals(
-        parse("{a:'2001-09-09T01:46:40Z'}")
-            .getString("a"),
-        "2001-09-09T01:46:40Z"
-    );
-  }
-
-  /**
-   * @since 1.1.0
-   */
-  @Test
-  void testHex() {
-    assertEquals(
-        0xCAFEBABEL,
-        parse("{a: 0xCAFEBABE}")
-            .getLong("a")
-    );
+  fun testSingleComments() {
+    Assertions.assertTrue(
+      parse("// test\n{ // lorem ipsum\n a: 'b'\n// test\n}// test")
+        .has("a")
+    )
   }
 
   @Test
-  void testSpecial() {
-    assertTrue(
-        Double.isNaN(
-            parse("{a: +NaN}")
-                .getDouble("a")
-        )
-    );
-
-    assertTrue(
-        Double.isInfinite(
-            parse("{a: -Infinity}")
-                .getDouble("a")
-        )
-    );
+  fun testInstant() {
+    Assertions.assertTrue(
+      parse("{a:1338150759534}")
+        .isInstant("a")
+    )
+    Assertions.assertEquals(
+      parse("{a:1338150759534}")
+        .getLong("a"),
+      1338150759534L
+    )
+    Assertions.assertEquals(
+      parse("{a:'2001-09-09T01:46:40Z'}")
+        .getString("a"),
+      "2001-09-09T01:46:40Z"
+    )
   }
 
-  JSONObject parse(String str) {
-    return new JSONObject(new JSONParser(str));
+  @Test
+  fun testHex() {
+    Assertions.assertEquals(
+      0xCAFEBABEL,
+      parse("{a: 0xCAFEBABE}")
+        .getLong("a")
+    )
   }
 
+  @Test
+  fun testSpecial() {
+    Assertions.assertTrue(
+      java.lang.Double.isNaN(
+        parse("{a: +NaN}")
+          .getDouble("a")
+      )
+    )
+    Assertions.assertTrue(
+      java.lang.Double.isInfinite(
+        parse("{a: -Infinity}")
+          .getDouble("a")
+      )
+    )
+  }
+
+  fun parse(str: String?): JSONObject {
+    return JSONObject(JSONParser(str))
+  }
+
+  companion object {
+    @BeforeAll
+    fun setUpBeforeClass() {
+      // compile regex patterns
+      JSONParser::class.java.toString()
+    }
+  }
 }
