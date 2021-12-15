@@ -97,6 +97,7 @@ class UnitTests {
 
   @Test
   void testMemberName() {
+    // note: requires UTF-8
     assertTrue(
         parse("{ $Lorem\\u0041_Ipsum123指事字: 0 }")
             .has("$LoremA_Ipsum123指事字")

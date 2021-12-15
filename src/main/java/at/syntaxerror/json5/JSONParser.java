@@ -736,23 +736,10 @@ public class JSONParser {
     throw new JSONException("Illegal value '" + string + "'");
   }
 
-  /**
-   * Constructs a new JSONException with a detail message and a causing exception
-   *
-   * @param message the detail message
-   * @param cause   the causing exception
-   * @return a JSONException
-   */
   public JSONException syntaxError(String message, Throwable cause) {
     return new JSONException(message + this, cause);
   }
 
-  /**
-   * Constructs a new JSONException with a detail message
-   *
-   * @param message the detail message
-   * @return a JSONException
-   */
   public JSONException syntaxError(String message) {
     return new JSONException(message + this);
   }
