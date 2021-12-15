@@ -21,15 +21,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package json5;
+package at.syntaxerror.json5;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import at.syntaxerror.json5.JSONArray;
-import at.syntaxerror.json5.JSONObject;
-import at.syntaxerror.json5.JSONOptions;
-import at.syntaxerror.json5.JSONParser;
 import java.time.Instant;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
