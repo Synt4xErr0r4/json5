@@ -15,7 +15,7 @@
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
@@ -23,6 +23,7 @@
  */
 package at.syntaxerror.json5
 
+import at.syntaxerror.json5.JSONException.JSONSyntaxError
 import java.io.BufferedReader
 import java.io.InputStream
 import java.io.InputStreamReader
@@ -51,11 +52,14 @@ class JSONParser(
   /** whether the current character should be re-read */
   private var back: Boolean = false
   /** the absolute position in the string */
-  private var index: Long = -1
+  var index: Long = -1
+    private set
   /** the relative position in the line */
-  private var character: Long = 0
+  var character: Long = 0
+    private set
   /** the line number */
-  private var line: Long = 1
+  var line: Long = 1
+    private set
   /** the previous character */
   private var previous: Char = Char.MIN_VALUE
   /** the current character */
@@ -63,27 +67,23 @@ class JSONParser(
 
   private val nextCleanToDelimiters: String = ",]}"
 
-  /**
-   * Constructs a new JSONParser from a string. This uses the [ default options][JSONOptions.defaultOptions]
-   */
   constructor(source: String, options: JSONOptions = JSONOptions.defaultOptions)
       : this(StringReader(source), options)
 
   /**
-   * Constructs a new JSONParser from an InputStream. The stream is not [closed][InputStream.close].
+   * Constructs a new JSONParser from an InputStream.
+   *
+   * The stream is not [closed][InputStream.close].
    */
   constructor(stream: InputStream, options: JSONOptions = JSONOptions.defaultOptions)
       : this(InputStreamReader(stream), options)
-
 
   private fun more(): Boolean {
     return if (back || eof) {
       back && !eof
     } else peek().code > 0
   }
-  /**
-   * Forces the parser to re-read the last character
-   */
+  /** Forces the parser to re-read the last character */
   fun back() {
     back = true
   }
@@ -120,7 +120,7 @@ class JSONParser(
     previous = current
     current = c.toChar()
     index++
-    if (isLineTerminator(current) && (current != '\n' || current == '\n' && previous != '\r')) {
+    if (isLineTerminator(current) && (current != '\n' || previous != '\r')) {
       line++
       character = 0
     } else {
@@ -138,8 +138,10 @@ class JSONParser(
   // https://spec.json5.org/#white-space
   private fun isWhitespace(c: Char): Boolean {
     return when (c) {
-      '\t', '\n', '\u000B', UnicodeCharacter.FormFeed.char, '\r', ' ', '\u00A0', '\u2028', '\u2029', '\uFEFF' -> true
-      else                                                                                                    ->         // Unicode category "Zs" (space separators)
+      '\t', '\n', '\u000B', UnicodeCharacter.FormFeed.char,
+      '\r', ' ', '\u00A0', '\u2028', '\u2029', '\uFEFF' -> true
+      else                                              ->
+        // Unicode category "Zs" (space separators)
         Character.getType(c) == Character.SPACE_SEPARATOR.toInt()
     }
   }
@@ -180,15 +182,18 @@ class JSONParser(
       }
       val n = next()
       if (n == '/') {
-        val p = peek()
-        if (p == '*') {
-          next()
-          nextMultiLineComment()
-        } else if (p == '/') {
-          next()
-          nextSingleLineComment()
-        } else {
-          return n
+        when (peek()) {
+          '*'  -> {
+            next()
+            nextMultiLineComment()
+          }
+          '/'  -> {
+            next()
+            nextSingleLineComment()
+          }
+          else -> {
+            return n
+          }
         }
       } else if (!isWhitespace(n)) {
         return n
@@ -338,9 +343,9 @@ class JSONParser(
               }
               n = codepoint.toChar()
             }
-            'u'             -> n = unicodeEscape(false, false)
+            'u'             -> n = unicodeEscape(member = false, part = false)
             else            -> if (n.isDigit()) {
-              throw syntaxError("Illegal escape sequence '\\$n'")
+              throw JSONSyntaxError("Illegal escape sequence '\\$n'", this)
             }
           }
         }
@@ -373,8 +378,6 @@ class JSONParser(
   /**
    * Reads a member name from the source according to the
    * [JSON5 Specification](https://spec.json5.org/#prod-JSON5MemberName)
-   *
-   * @return an member name
    */
   fun nextMemberName(): String {
     val result = StringBuilder()
@@ -387,7 +390,7 @@ class JSONParser(
     n = 0.toChar()
     while (true) {
       if (!more()) {
-        throw syntaxError("Unexpected end of data")
+        throw JSONSyntaxError("Unexpected end of data", this)
       }
       val isNotEmpty = result.isNotEmpty()
       prev = n
@@ -395,7 +398,7 @@ class JSONParser(
       if (n == '\\') { // unicode escape sequence
         n = next()
         if (n != 'u') {
-          throw syntaxError("Illegal escape sequence '\\$n' in key")
+          throw JSONSyntaxError("Illegal escape sequence '\\$n' in key", this)
         }
         n = unicodeEscape(true, isNotEmpty)
       } else if (!isMemberNameChar(n, isNotEmpty)) {
@@ -406,19 +409,16 @@ class JSONParser(
       result.append(n)
     }
     if (result.isEmpty()) {
-      throw syntaxError("Empty key")
+      throw JSONSyntaxError("Empty key", this)
     }
     return result.toString()
   }
   /**
    * Reads a value from the source according to the
    * [JSON5 Specification](https://spec.json5.org/#prod-JSON5Value)
-   *
-   * @return an member name
    */
   fun nextValue(): Any? {
-    val n = nextClean()
-    when (n) {
+    when (val n = nextClean()) {
       '"', '\'' -> {
         val string = nextString(n)
         if (options.parseInstants && options.parseStringInstants) {
@@ -481,13 +481,13 @@ class JSONParser(
       when (special) {
         "NaN"      -> {
           if (!options.allowNaN) {
-            throw syntaxError("NaN is not allowed")
+            throw JSONSyntaxError("NaN is not allowed", this)
           }
           d = Double.NaN
         }
         "Infinity" -> {
           if (!options.allowInfinity) {
-            throw syntaxError("Infinity is not allowed")
+            throw JSONSyntaxError("Infinity is not allowed", this)
           }
           d = Double.POSITIVE_INFINITY
         }
@@ -519,8 +519,14 @@ class JSONParser(
     throw JSONException("Illegal value '$string'")
   }
 
+  @Deprecated(
+    "use constructor", ReplaceWith(
+      "JSONSyntaxError(message, this, cause)",
+      "at.syntaxerror.json5.JSONException.JSONSyntaxError"
+    )
+  )
   fun syntaxError(message: String, cause: Throwable? = null): JSONException {
-    return JSONException(message + this, cause)
+    return JSONSyntaxError(message, this, cause)
   }
 
   override fun toString(): String {

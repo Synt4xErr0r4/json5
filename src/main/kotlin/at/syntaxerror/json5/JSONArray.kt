@@ -15,13 +15,15 @@
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
 package at.syntaxerror.json5
+
+import at.syntaxerror.json5.JSONException.JSONSyntaxError
 
 /**
  * A JSONArray is an array structure capable of holding multiple values, including other JSONArrays
@@ -35,16 +37,17 @@ class JSONArray(
 
   /** Constructs a new JSONArray from a string */
   constructor(source: String ) : this(JSONParser(source))
+
   /** Constructs a new JSONArray from a JSONParser */
   constructor(parser: JSONParser) : this() {
     var c: Char
     if (parser.nextClean() != '[') {
-      throw parser.syntaxError("A JSONArray must begin with '['")
+      throw JSONSyntaxError("A JSONArray must begin with '['", parser)
     }
     while (true) {
       c = parser.nextClean()
       when (c) {
-        Char.MIN_VALUE -> throw parser.syntaxError("A JSONArray must end with ']'")
+        Char.MIN_VALUE -> throw JSONSyntaxError("A JSONArray must end with ']'", parser)
         ']'            -> return
         else           -> parser.back()
       }
@@ -55,10 +58,11 @@ class JSONArray(
         return
       }
       if (c != ',') {
-        throw parser.syntaxError("Expected ',' or ']' after value, got '$c' instead")
+        throw JSONSyntaxError("Expected ',' or ']' after value, got '$c' instead", parser)
       }
     }
   }
+
   /**
    * Converts the JSONArray into a list. All JSONObjects and JSONArrays contained within this
    * JSONArray will be converted into their Map or List form as well
@@ -78,31 +82,31 @@ class JSONArray(
    * pretty-printing and defines how many spaces (' ') should be placed before each value. A factor
    * of `< 1` disables pretty-printing and discards any optional whitespace characters.
    *
+   * `indentFactor = 2` results in
    *
-   * `indentFactor = 2`:
-   * <pre>
+   * ```
    * [
-   * "value",
-   * {
-   * "nested": 123
-   * },
-   * false
+   *   "value",
+   *   {
+   *     "nested": 123
+   *   },
+   *   false
    * ]
-  </pre> *
+   * ```
    *
+   * `indentFactor = 0` results in
    *
-   * `indentFactor = 0`:
-   * <pre>
+   * ```
    * ["value",{"nested":123},false]
-  </pre> *
+   * ```
    *
    * @param indentFactor the indentation factor
-   * @return the string representation
    * @see JSONStringify.toString
    */
   fun toString(indentFactor: Int): String {
     return JSONStringify.toString(this, indentFactor)
   }
+
   /**
    * Converts the JSONArray into its compact string representation.
    *

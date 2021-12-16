@@ -15,7 +15,7 @@
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
@@ -24,8 +24,8 @@
 package at.syntaxerror.json5
 
 import java.time.Instant
-import org.junit.jupiter.api.Assertions
-import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 /**
@@ -34,7 +34,7 @@ import org.junit.jupiter.api.Test
 internal class UnitTests {
   @Test
   fun testDoubleQuoted() {
-    Assertions.assertEquals(
+    assertEquals(
       "Test \" 123", parse("{ a: \"Test \\\" 123\" }")
         .getString("a")
     )
@@ -42,7 +42,7 @@ internal class UnitTests {
 
   @Test
   fun testSingleQuoted() {
-    Assertions.assertEquals(
+    assertEquals(
       "Test ' 123", parse("{ a: 'Test \\' 123' }")
         .getString("a")
     )
@@ -50,7 +50,7 @@ internal class UnitTests {
 
   @Test
   fun testMixedQuoted() {
-    Assertions.assertEquals(
+    assertEquals(
       "Test ' 123", parse("{ a: \"Test \\' 123\" }")
         .getString("a")
     )
@@ -72,7 +72,7 @@ internal class UnitTests {
     json["i"] = 123L
     json["j"] = "Lorem Ipsum"
     json["k"] = Instant.now()
-    Assertions.assertEquals(
+    assertEquals(
       json.toString(),
       parse(json.toString()).toString()
     )
@@ -80,7 +80,7 @@ internal class UnitTests {
 
   @Test
   fun testEscapes() {
-    Assertions.assertEquals(
+    assertEquals(
       "\n\r\u000c\b\t\u000B\u0000\u12Fa\u007F",
       parse("{ a: \"\\n\\r\\u000c\\b\\t\\v\\0\\u12Fa\\x7F\" }")
         .getString("a")
@@ -90,7 +90,7 @@ internal class UnitTests {
   @Test
   fun testMemberName() {
     // note: requires UTF-8
-    Assertions.assertTrue(
+    assertTrue(
       parse("{ \$Lorem\\u0041_Ipsum123指事字: 0 }")
         .has("\$LoremA_Ipsum123指事字")
     )
@@ -98,7 +98,7 @@ internal class UnitTests {
 
   @Test
   fun testMultiComments() {
-    Assertions.assertTrue(
+    assertTrue(
       parse("/**/{/**/a/**/:/**/'b'/**/}/**/")
         .has("a")
     )
@@ -106,7 +106,7 @@ internal class UnitTests {
 
   @Test
   fun testSingleComments() {
-    Assertions.assertTrue(
+    assertTrue(
       parse("// test\n{ // lorem ipsum\n a: 'b'\n// test\n}// test")
         .has("a")
     )
@@ -114,16 +114,16 @@ internal class UnitTests {
 
   @Test
   fun testInstant() {
-    Assertions.assertTrue(
+    assertTrue(
       parse("{a:1338150759534}")
         .isInstant("a")
     )
-    Assertions.assertEquals(
+    assertEquals(
       parse("{a:1338150759534}")
         .getLong("a"),
       1338150759534L
     )
-    Assertions.assertEquals(
+    assertEquals(
       parse("{a:'2001-09-09T01:46:40Z'}")
         .getString("a"),
       "2001-09-09T01:46:40Z"
@@ -132,7 +132,7 @@ internal class UnitTests {
 
   @Test
   fun testHex() {
-    Assertions.assertEquals(
+    assertEquals(
       0xCAFEBABEL,
       parse("{a: 0xCAFEBABE}")
         .getLong("a")
@@ -141,29 +141,21 @@ internal class UnitTests {
 
   @Test
   fun testSpecial() {
-    Assertions.assertTrue(
-      java.lang.Double.isNaN(
-        parse("{a: +NaN}")
-          .getDouble("a")
-      )
+    assertTrue(
+      parse("{a: +NaN}")
+        .getDouble("a")
+        .isNaN()
+
     )
-    Assertions.assertTrue(
-      java.lang.Double.isInfinite(
-        parse("{a: -Infinity}")
-          .getDouble("a")
-      )
+    assertTrue(
+      parse("{a: -Infinity}")
+        .getDouble("a")
+        .isInfinite()
     )
   }
 
-  fun parse(str: String ): JSONObject {
+  private fun parse(str: String): JSONObject {
     return JSONObject(JSONParser(str))
   }
 
-  companion object {
-    @BeforeAll
-    fun setUpBeforeClass() {
-      // compile regex patterns
-      JSONParser::class.java.toString()
-    }
-  }
 }
