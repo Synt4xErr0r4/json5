@@ -19,6 +19,15 @@ dependencies {
   testRuntimeOnly("org.junit.platform:junit-platform-launcher") {
     because("Only needed to run tests in a version of IntelliJ IDEA that bundles older versions")
   }
+
+  val kotestVersion = "5.0.2"
+  testImplementation(enforcedPlatform("io.kotest:kotest-bom:$kotestVersion"))
+  testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
+  testImplementation("io.kotest:kotest-assertions-core:$kotestVersion")
+  testImplementation("io.kotest:kotest-property:$kotestVersion")
+  testImplementation("io.kotest:kotest-assertions-json:$kotestVersion")
+
+  testImplementation("io.mockk:mockk:1.12.1")
 }
 
 group = "at.syntaxerror"
