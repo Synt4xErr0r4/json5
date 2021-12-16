@@ -41,18 +41,18 @@ class JSONObject private constructor(
 
   constructor(values: MutableMap<String, Any?> = mutableMapOf()) : this(values, values.asIterable())
 
-  constructor(source: String ) : this(JSONParser(source))
+  constructor(source: String) : this(JSONParser(source))
 
   constructor(parser: JSONParser) : this() {
     var c: Char
     var key: String
     if (parser.nextClean() != '{') {
-      throw parser.syntaxError("A JSONObject must begin with '{'")
+      throw parser.createSyntaxException("A JSONObject must begin with '{'")
     }
     while (true) {
       c = parser.nextClean()
       key = when (c) {
-        Char.MIN_VALUE -> throw parser.syntaxError("A JSONObject must end with '}'")
+        Char.MIN_VALUE -> throw parser.createSyntaxException("A JSONObject must end with '}'")
         '}'            -> return
         else           -> {
           parser.back()
@@ -64,7 +64,7 @@ class JSONObject private constructor(
       }
       c = parser.nextClean()
       if (c != ':') {
-        throw parser.syntaxError("Expected ':' after a key, got '$c' instead")
+        throw parser.createSyntaxException("Expected ':' after a key, got '$c' instead")
       }
       val value = parser.nextValue()
       values[key] = value
@@ -73,7 +73,7 @@ class JSONObject private constructor(
         return
       }
       if (c != ',') {
-        throw parser.syntaxError("Expected ',' or '}' after value, got '$c' instead")
+        throw parser.createSyntaxException("Expected ',' or '}' after value, got '$c' instead")
       }
     }
   }
@@ -92,33 +92,37 @@ class JSONObject private constructor(
   }
 
   /**
-   * Checks if a key exists within the JSONObject
+   * Checks if a key exists within the [JSONObject]
    */
   fun has(key: String): Boolean {
     return values.containsKey(key)
   }
   /**
-   * Checks if the value with the specified key is a string
+   * Checks if the value with the specified key is a [String] or an [Instant]
    *
    * @throws JSONException if the key does not exist
    */
   fun isString(key: String): Boolean {
-    val value = checkKey(key)
-    return value is String || value is Instant
+    return when (checkKey(key)) {
+      is String, is Instant -> true
+      else                  -> false
+    }
   }
   /**
-   * Checks if the value with the specified key is a number
+   * Checks if the value with the specified key is a [Number] or an [Instant]
    *
    * @throws JSONException if the key does not exist
    */
   fun isNumber(key: String): Boolean {
-    val value = checkKey(key)
-    return value is Number || value is Instant
+    return when (checkKey(key)) {
+      is Number, is Instant -> true
+      else                  -> false
+    }
   }
   /**
    * Checks if the value with the specified key is an Instant
+   *
    * @throws JSONException if the key does not exist
-   * @since 1.1.0
    */
   fun isInstant(key: String): Boolean {
     return checkKey(key) is Instant
@@ -127,8 +131,6 @@ class JSONObject private constructor(
   /**
    * Returns the value as a string for a given key
    *
-   * @param key the key
-   * @return the string
    * @throws JSONException if the key does not exist, or if the value is not a string
    */
   fun getString(key: String): String {
@@ -139,8 +141,6 @@ class JSONObject private constructor(
   /**
    * Returns the value as a number for a given key
    *
-   * @param key the key
-   * @return the number
    * @throws JSONException if the key does not exist, or if the value is not a number
    */
   fun getNumber(key: String): Number {
@@ -160,9 +160,6 @@ class JSONObject private constructor(
   }
   /**
    * Returns the value as a double for a given key
-   *
-   * @param key the key
-   * @return the double
    *
    * @throws JSONException if the key does not exist, or if the value is not a double
    */
@@ -193,33 +190,30 @@ class JSONObject private constructor(
    *
    *
    * `indentFactor = 2`:
-   * <pre>
+   * ```
    * {
-   * "key0": "value0",
-   * "key1": {
-   * "nested": 123
-   * },
-   * "key2": false
+   *   "key0": "value0",
+   *   "key1": {
+   *     "nested": 123
+   *   },
+   *   "key2": false
    * }
-  </pre> *
-   *
+   * ```
    *
    * `indentFactor = 0`:
-   * <pre>
+   * ```
    * {"key0":"value0","key1":{"nested":123},"key2":false}
-  </pre> *
+   * ```
    *
    * @param indentFactor the indentation factor
-   * @return the string representation
    * @see JSONStringify.toString
    */
   fun toString(indentFactor: Int): String {
     return JSONStringify.toString(this, indentFactor)
   }
+
   /**
    * Converts the JSONObject into its compact string representation.
-   *
-   * @return the compact string representation
    */
   override fun toString(): String {
     return toString(0)
@@ -232,17 +226,15 @@ class JSONObject private constructor(
     return values[key]
   }
 
-  private fun <T> checkType(predicate: Predicate<String>, key: String, type: String): T? {
+  private inline fun <reified T> checkType(predicate: Predicate<String>, key: String, type: String): T? {
     if (!predicate.test(key)) {
-      throw mismatch(key, type)
+      throw JSONException("JSONObject[${JSONStringify.quote(key)}] is not of type $type")
     }
-    return values[key] as T?
+    return values[key] as? T
   }
 
   companion object {
-    private fun mismatch(key: String, type: String): JSONException {
-      return JSONException("JSONObject[" + JSONStringify.quote(key) + "] is not of type " + type)
-    }
+
     /**
      * Sanitizes an input value
      *

@@ -83,6 +83,7 @@ class JSONParser(
       back && !eof
     } else peek().code > 0
   }
+
   /** Forces the parser to re-read the last character */
   fun back() {
     back = true
@@ -98,7 +99,7 @@ class JSONParser(
       c = reader.read()
       reader.reset()
     } catch (e: Exception) {
-      throw syntaxError("Could not peek from source", e)
+      throw createSyntaxException("Could not peek from source", e)
     }
     return if (c == -1) Char.MIN_VALUE else c.toChar()
   }
@@ -111,7 +112,7 @@ class JSONParser(
     val c: Int = try {
       reader.read()
     } catch (e: Exception) {
-      throw syntaxError("Could not read from source", e)
+      throw createSyntaxException("Could not read from source", e)
     }
     if (c < 0) {
       eof = true
@@ -178,7 +179,7 @@ class JSONParser(
   fun nextClean(): Char {
     while (true) {
       if (!more()) {
-        throw syntaxError("Unexpected end of data")
+        throw createSyntaxException("Unexpected end of data")
       }
       val n = next()
       if (n == '/') {
@@ -205,7 +206,7 @@ class JSONParser(
     val result = StringBuilder()
     while (true) {
       if (!more()) {
-        throw syntaxError("Unexpected end of data")
+        throw createSyntaxException("Unexpected end of data")
       }
       val n = nextClean()
       if (delimiters.indexOf(n) > -1 || isWhitespace(n)) {
@@ -235,12 +236,12 @@ class JSONParser(
       value += n
       val hex = deHex(n)
       if (hex == -1) {
-        throw syntaxError("Illegal unicode escape sequence '\\u$value' in $where")
+        throw createSyntaxException("Illegal unicode escape sequence '\\u$value' in $where")
       }
       codepoint = codepoint or (hex shl (3 - i shl 2))
     }
     if (member && !isMemberNameChar(codepoint.toChar(), part)) {
-      throw syntaxError("Illegal unicode escape sequence '\\u$value' in key")
+      throw createSyntaxException("Illegal unicode escape sequence '\\u$value' in key")
     }
     return codepoint.toChar()
   }
@@ -253,7 +254,7 @@ class JSONParser(
       return
     }
     if (!Character.isSurrogatePair(hi, lo)) {
-      throw syntaxError(
+      throw createSyntaxException(
         String.format(
           "Invalid surrogate pair: U+%04X and U+%04X",
           hi, lo
@@ -270,7 +271,7 @@ class JSONParser(
     var prev: Char
     while (true) {
       if (!more()) {
-        throw syntaxError("Unexpected end of data")
+        throw createSyntaxException("Unexpected end of data")
       }
       prev = n
       n = next()
@@ -278,7 +279,7 @@ class JSONParser(
         break
       }
       if (isLineTerminator(n) && n.code != 0x2028 && n.code != 0x2029) {
-        throw syntaxError("Unescaped line terminator in string")
+        throw createSyntaxException("Unescaped line terminator in string")
       }
       if (n == '\\') {
         n = next()
@@ -322,7 +323,7 @@ class JSONParser(
             '0'             -> {
               val p = peek()
               if (p.isDigit()) {
-                throw syntaxError("Illegal escape sequence '\\0$p'")
+                throw createSyntaxException("Illegal escape sequence '\\0$p'")
               }
               result.append(0.toChar())
               continue
@@ -336,7 +337,7 @@ class JSONParser(
                 value += n
                 val hex = deHex(n)
                 if (hex == -1) {
-                  throw syntaxError("Illegal hex escape sequence '\\x$value' in string")
+                  throw createSyntaxException("Illegal hex escape sequence '\\x$value' in string")
                 }
                 codepoint = codepoint or (hex shl (1 - i shl 2))
                 ++i
@@ -345,7 +346,7 @@ class JSONParser(
             }
             'u'             -> n = unicodeEscape(member = false, part = false)
             else            -> if (n.isDigit()) {
-              throw JSONSyntaxError("Illegal escape sequence '\\$n'", this)
+              throw JSONSyntaxError("Illegal escape sequence '\\$n'")
             }
           }
         }
@@ -390,7 +391,7 @@ class JSONParser(
     n = 0.toChar()
     while (true) {
       if (!more()) {
-        throw JSONSyntaxError("Unexpected end of data", this)
+        throw createSyntaxException("Unexpected end of data")
       }
       val isNotEmpty = result.isNotEmpty()
       prev = n
@@ -398,7 +399,7 @@ class JSONParser(
       if (n == '\\') { // unicode escape sequence
         n = next()
         if (n != 'u') {
-          throw JSONSyntaxError("Illegal escape sequence '\\$n' in key", this)
+          throw createSyntaxException("Illegal escape sequence '\\$n' in key")
         }
         n = unicodeEscape(true, isNotEmpty)
       } else if (!isMemberNameChar(n, isNotEmpty)) {
@@ -409,10 +410,11 @@ class JSONParser(
       result.append(n)
     }
     if (result.isEmpty()) {
-      throw JSONSyntaxError("Empty key", this)
+      throw createSyntaxException("Empty key")
     }
     return result.toString()
   }
+
   /**
    * Reads a value from the source according to the
    * [JSON5 Specification](https://spec.json5.org/#prod-JSON5Value)
@@ -481,13 +483,13 @@ class JSONParser(
       when (special) {
         "NaN"      -> {
           if (!options.allowNaN) {
-            throw JSONSyntaxError("NaN is not allowed", this)
+            throw createSyntaxException("NaN is not allowed")
           }
           d = Double.NaN
         }
         "Infinity" -> {
           if (!options.allowInfinity) {
-            throw JSONSyntaxError("Infinity is not allowed", this)
+            throw createSyntaxException("Infinity is not allowed")
           }
           d = Double.POSITIVE_INFINITY
         }
@@ -495,6 +497,10 @@ class JSONParser(
       return factor * d
     }
     if (PATTERN_NUMBER_HEX.matcher(string).matches()) {
+
+      // TODO try this:
+      //      string.toLong(radix = 16)
+
       val hex: String
       val factor: Int
       when (string[0]) {
@@ -511,6 +517,7 @@ class JSONParser(
           factor = 1
         }
       }
+
       val bigint = BigInteger(hex, 16)
       return if (factor == -1) {
         bigint.negate()
@@ -519,18 +526,11 @@ class JSONParser(
     throw JSONException("Illegal value '$string'")
   }
 
-  @Deprecated(
-    "use constructor", ReplaceWith(
-      "JSONSyntaxError(message, this, cause)",
-      "at.syntaxerror.json5.JSONException.JSONSyntaxError"
+  fun createSyntaxException(message: String, cause: Throwable? = null): JSONSyntaxError {
+    return JSONSyntaxError(
+      "$message, at index $index, character $character, line $line]",
+      cause
     )
-  )
-  fun syntaxError(message: String, cause: Throwable? = null): JSONException {
-    return JSONSyntaxError(message, this, cause)
-  }
-
-  override fun toString(): String {
-    return " at index $index [character $character in line $line]"
   }
 
   companion object {

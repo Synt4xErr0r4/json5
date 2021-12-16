@@ -23,7 +23,6 @@
  */
 package at.syntaxerror.json5
 
-import at.syntaxerror.json5.JSONException.JSONSyntaxError
 
 /**
  * A JSONArray is an array structure capable of holding multiple values, including other JSONArrays
@@ -42,12 +41,12 @@ class JSONArray(
   constructor(parser: JSONParser) : this() {
     var c: Char
     if (parser.nextClean() != '[') {
-      throw JSONSyntaxError("A JSONArray must begin with '['", parser)
+      throw parser.createSyntaxException("A JSONArray must begin with '['")
     }
     while (true) {
       c = parser.nextClean()
       when (c) {
-        Char.MIN_VALUE -> throw JSONSyntaxError("A JSONArray must end with ']'", parser)
+        Char.MIN_VALUE -> throw parser.createSyntaxException("A JSONArray must end with ']'")
         ']'            -> return
         else           -> parser.back()
       }
@@ -55,10 +54,11 @@ class JSONArray(
       values.add(value)
       c = parser.nextClean()
       if (c == ']') {
+        // finish parsing this array
         return
       }
       if (c != ',') {
-        throw JSONSyntaxError("Expected ',' or ']' after value, got '$c' instead", parser)
+        throw parser.createSyntaxException("Expected ',' or ']' after value, got '$c' instead")
       }
     }
   }

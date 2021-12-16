@@ -36,11 +36,12 @@ open class JSONException(
 
   class JSONSyntaxError(
     message: String,
-    jsonParser: JSONParser,
     cause: Throwable? = null,
-  ) : JSONException(
-    "$message, at index ${jsonParser.index} [character ${jsonParser.character} in line ${jsonParser.line}]",
-    cause
-  )
+  ) : JSONException(message, cause)
+
+  class UnexpectedType(
+    message: String,
+    cause: Throwable? = null,
+  ) : JSONException(message, cause)
 
 }
