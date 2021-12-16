@@ -60,7 +60,7 @@ class JSONObject private constructor(
         }
       }
       if (has(key)) {
-        throw JSONException("Duplicate key " + JSONStringify.quote(key))
+        throw JSONException("Duplicate key ${JSONStringify.quote(key)}")
       }
       c = parser.nextClean()
       if (c != ':') {
