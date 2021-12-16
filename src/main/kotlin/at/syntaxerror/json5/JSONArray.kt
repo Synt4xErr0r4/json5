@@ -35,16 +35,15 @@ class JSONArray(
 ) : Iterable<Any?> by values {
 
   /** Constructs a new JSONArray from a string */
-  constructor(source: String ) : this(JSONParser(source))
+  constructor(source: String) : this(JSONParser(source))
 
   /** Constructs a new JSONArray from a JSONParser */
   constructor(parser: JSONParser) : this() {
-    var c: Char
     if (parser.nextClean() != '[') {
       throw parser.createSyntaxException("A JSONArray must begin with '['")
     }
     while (true) {
-      c = parser.nextClean()
+      var c: Char = parser.nextClean()
       when (c) {
         Char.MIN_VALUE -> throw parser.createSyntaxException("A JSONArray must end with ']'")
         ']'            -> return
