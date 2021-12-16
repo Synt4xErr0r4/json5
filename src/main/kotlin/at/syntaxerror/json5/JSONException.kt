@@ -34,12 +34,7 @@ open class JSONException(
   cause: Throwable? = null,
 ) : RuntimeException(message, cause) {
 
-  class JSONSyntaxError(
-    message: String,
-    cause: Throwable? = null,
-  ) : JSONException(message, cause)
-
-  class UnexpectedType(
+  class SyntaxError(
     message: String,
     cause: Throwable? = null,
   ) : JSONException(message, cause)

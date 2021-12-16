@@ -23,7 +23,7 @@
  */
 package at.syntaxerror.json5
 
-import at.syntaxerror.json5.JSONException.JSONSyntaxError
+import at.syntaxerror.json5.JSONException.SyntaxError
 import java.io.BufferedReader
 import java.io.InputStream
 import java.io.InputStreamReader
@@ -347,7 +347,7 @@ class JSONParser(
             }
             'u'             -> n = unicodeEscape(member = false, part = false)
             else            -> if (n.isDigit()) {
-              throw JSONSyntaxError("Illegal escape sequence '\\$n'")
+              throw SyntaxError("Illegal escape sequence '\\$n'")
             }
           }
         }
@@ -532,8 +532,8 @@ class JSONParser(
     }
   }
 
-  fun createSyntaxException(message: String, cause: Throwable? = null): JSONSyntaxError {
-    return JSONSyntaxError(
+  fun createSyntaxException(message: String, cause: Throwable? = null): SyntaxError {
+    return SyntaxError(
       "$message, at index $index, character $character, line $line]",
       cause
     )
