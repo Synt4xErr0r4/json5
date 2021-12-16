@@ -31,8 +31,9 @@ import java.io.Reader
 import java.io.StringReader
 import java.math.BigDecimal
 import java.math.BigInteger
+import java.time.DateTimeException
 import java.time.Instant
-import java.util.regex.Pattern
+import java.time.format.DateTimeParseException
 
 /**
  * A JSONParser is used to convert a source string into tokens, which then are used to construct
@@ -423,13 +424,15 @@ class JSONParser(
     when (val n = nextClean()) {
       '"', '\'' -> {
         val string = nextString(n)
-        if (options.parseInstants && options.parseStringInstants) {
+        return if (options.parseInstants && options.parseStringInstants) {
           try {
-            return Instant.parse(string)
-          } catch (ignored: Exception) {
+            Instant.parse(string)
+          } catch (e: DateTimeParseException) {
+            string
           }
+        } else {
+          string
         }
-        return string
       }
       '{'       -> {
         back()
@@ -442,88 +445,91 @@ class JSONParser(
     }
     back()
     val string = nextCleanTo()
-    if (string == "null") {
-      return null
-    }
-    if (PATTERN_BOOLEAN.matcher(string).matches()) {
-      return string == "true"
-    }
-    if (PATTERN_NUMBER_INTEGER.matcher(string).matches()) {
-      val bigint = BigInteger(string)
-      if (options.parseInstants && options.parseUnixInstants) {
-        try {
-          val unix = bigint.longValueExact()
-          return Instant.ofEpochSecond(unix)
-        } catch (ignored: Exception) {
-        }
+    when {
+      string == "null"                       -> {
+        return null
       }
-      return bigint
-    }
-    if (PATTERN_NUMBER_FLOAT.matcher(string).matches()) {
-      return BigDecimal(string)
-    }
-    if (PATTERN_NUMBER_SPECIAL.matcher(string).matches()) {
-      val special: String
-      val factor: Int
-      var d = 0.0
-      when (string[0]) {
-        '+'  -> {
-          special = string.substring(1) // +
-          factor = 1
-        }
-        '-'  -> {
-          special = string.substring(1) // -
-          factor = -1
-        }
-        else -> {
-          special = string
-          factor = 1
-        }
+      PATTERN_BOOLEAN.matches(string)        -> {
+        return string == "true"
       }
-      when (special) {
-        "NaN"      -> {
-          if (!options.allowNaN) {
-            throw createSyntaxException("NaN is not allowed")
+      PATTERN_NUMBER_INTEGER.matches(string) -> {
+        val bigint = BigInteger(string)
+        if (options.parseInstants && options.parseUnixInstants) {
+          return try {
+            val unix = bigint.longValueExact()
+            Instant.ofEpochSecond(unix)
+          } catch (e: DateTimeException) {
+            bigint
           }
-          d = Double.NaN
         }
-        "Infinity" -> {
-          if (!options.allowInfinity) {
-            throw createSyntaxException("Infinity is not allowed")
+        return bigint
+      }
+      PATTERN_NUMBER_FLOAT.matches(string)   -> {
+        return BigDecimal(string)
+      }
+      PATTERN_NUMBER_SPECIAL.matches(string) -> {
+        val special: String
+        val factor: Int
+        var d = 0.0
+        when (string[0]) {
+          '+'  -> {
+            special = string.substring(1) // +
+            factor = 1
           }
-          d = Double.POSITIVE_INFINITY
+          '-'  -> {
+            special = string.substring(1) // -
+            factor = -1
+          }
+          else -> {
+            special = string
+            factor = 1
+          }
         }
+        when (special) {
+          "NaN"      -> {
+            if (!options.allowNaN) {
+              throw createSyntaxException("NaN is not allowed")
+            }
+            d = Double.NaN
+          }
+          "Infinity" -> {
+            if (!options.allowInfinity) {
+              throw createSyntaxException("Infinity is not allowed")
+            }
+            d = Double.POSITIVE_INFINITY
+          }
+        }
+        return factor * d
       }
-      return factor * d
-    }
-    if (PATTERN_NUMBER_HEX.matcher(string).matches()) {
+      PATTERN_NUMBER_HEX.matches(string)     -> {
 
-      // TODO try this:
-      //      string.toLong(radix = 16)
+        // TODO try this:
+        //      string.toLong(radix = 16)
 
-      val hex: String
-      val factor: Int
-      when (string[0]) {
-        '+'  -> {
-          hex = string.substring(3) // +0x
-          factor = 1
+        val hex: String
+        val factor: Int
+        when (string[0]) {
+          '+'  -> {
+            hex = string.substring(3) // +0x
+            factor = 1
+          }
+          '-'  -> {
+            hex = string.substring(3) // -0x
+            factor = -1
+          }
+          else -> {
+            hex = string.substring(2) // 0x
+            factor = 1
+          }
         }
-        '-'  -> {
-          hex = string.substring(3) // -0x
-          factor = -1
-        }
-        else -> {
-          hex = string.substring(2) // 0x
-          factor = 1
-        }
+
+        val bigint = BigInteger(hex, 16)
+        return if (factor == -1) {
+          bigint.negate()
+        } else bigint
       }
-
-      val bigint = BigInteger(hex, 16)
-      return if (factor == -1) {
-        bigint.negate()
-      } else bigint
+      else                                   -> throw JSONException("Illegal value '$string'")
     }
-    throw JSONException("Illegal value '$string'")
   }
 
   fun createSyntaxException(message: String, cause: Throwable? = null): JSONSyntaxError {
@@ -534,20 +540,15 @@ class JSONParser(
   }
 
   companion object {
-    private val PATTERN_BOOLEAN = Pattern.compile(
-      "true|false"
-    )
-    private val PATTERN_NUMBER_FLOAT = Pattern.compile(
-      "[+-]?((0|[1-9]\\d*)(\\.\\d*)?|\\.\\d+)([eE][+-]?\\d+)?"
-    )
-    private val PATTERN_NUMBER_INTEGER = Pattern.compile(
-      "[+-]?(0|[1-9]\\d*)"
-    )
-    private val PATTERN_NUMBER_HEX = Pattern.compile(
-      "[+-]?0[xX][0-9a-fA-F]+"
-    )
-    private val PATTERN_NUMBER_SPECIAL = Pattern.compile(
-      "[+-]?(Infinity|NaN)"
-    )
+    private val PATTERN_BOOLEAN =
+      Regex("true|false")
+    private val PATTERN_NUMBER_FLOAT =
+      Regex("[+-]?((0|[1-9]\\d*)(\\.\\d*)?|\\.\\d+)([eE][+-]?\\d+)?")
+    private val PATTERN_NUMBER_INTEGER =
+      Regex("[+-]?(0|[1-9]\\d*)")
+    private val PATTERN_NUMBER_HEX =
+      Regex("[+-]?0[xX][0-9a-fA-F]+")
+    private val PATTERN_NUMBER_SPECIAL =
+      Regex("[+-]?(Infinity|NaN)")
   }
 }
