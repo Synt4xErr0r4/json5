@@ -155,7 +155,7 @@ internal class UnitTests {
     )
   }
 
-  fun parse(str: String?): JSONObject {
+  fun parse(str: String ): JSONObject {
     return JSONObject(JSONParser(str))
   }
 

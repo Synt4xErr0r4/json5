@@ -37,86 +37,44 @@ import java.util.regex.Pattern
  * A JSONParser is used to convert a source string into tokens, which then are used to construct
  * [JSONObjects][JSONObject] and [JSONArrays][JSONArray]
  *
+ * The reader is not [closed][Reader.close]
+ *
  * @author SyntaxError404
  */
-class JSONParser @JvmOverloads constructor(reader: Reader, options: JSONOptions? = null) {
-  private val reader: Reader
-  private val options: JSONOptions
-  /**
-   * whether the end of the file has been reached
-   */
-  private var eof: Boolean
-  /**
-   * whether the current character should be re-read
-   */
-  private var back: Boolean
-  /**
-   * the absolute position in the string
-   */
-  private var index: Long
-  /**
-   * the relative position in the line
-   */
-  private var character: Long
-  /**
-   * the line number
-   */
-  private var line: Long
-  /**
-   * the previous character
-   */
-  private var previous: Char
-  /**
-   * the current character
-   */
-  private var current: Char
-  /**
-   * Constructs a new JSONParser from a Reader. The reader is not [closed][Reader.close]
-   *
-   * @param reader  a reader
-   * @param options the options for parsing
-   * @since 1.1.0
-   */
-  /**
-   * Constructs a new JSONParser from a Reader. The reader is not [closed][Reader.close].
-   * This uses the [default options][JSONOptions.defaultOptions]
-   */
-  init {
-    this.reader = if (reader.markSupported()) reader else BufferedReader(reader)
-    this.options = options ?: JSONOptions.defaultOptions
-    eof = false
-    back = false
-    index = -1
-    character = 0
-    line = 1
-    previous = 0.toChar()
-    current = 0.toChar()
-  }
-  /**
-   * Constructs a new JSONParser from a string
-   *
-   * @param source  a string
-   * @param options the options for parsing
-   * @since 1.1.0
-   */
+class JSONParser(
+  reader: Reader,
+  private val options: JSONOptions = JSONOptions.defaultOptions
+) {
+  private val reader: Reader = if (reader.markSupported()) reader else BufferedReader(reader)
+  /** whether the end of the file has been reached */
+  private var eof: Boolean = false
+  /** whether the current character should be re-read */
+  private var back: Boolean = false
+  /** the absolute position in the string */
+  private var index: Long = -1
+  /** the relative position in the line */
+  private var character: Long = 0
+  /** the line number */
+  private var line: Long = 1
+  /** the previous character */
+  private var previous: Char = Char.MIN_VALUE
+  /** the current character */
+  private var current: Char = Char.MIN_VALUE
+
+  private val nextCleanToDelimiters: String = ",]}"
+
   /**
    * Constructs a new JSONParser from a string. This uses the [ default options][JSONOptions.defaultOptions]
    */
-  @JvmOverloads
-  constructor(source: String?, options: JSONOptions? = null) : this(StringReader(source), options) {
-  }
+  constructor(source: String, options: JSONOptions = JSONOptions.defaultOptions)
+      : this(StringReader(source), options)
+
   /**
-   * Constructs a new JSONParser from an InputStream. The stream is not [ closed][InputStream.close]
+   * Constructs a new JSONParser from an InputStream. The stream is not [closed][InputStream.close].
    */
-  /**
-   * Constructs a new JSONParser from an InputStream. The stream is not [ closed][InputStream.close]. This uses the [default options][JSONOptions.defaultOptions]
-   */
-  @JvmOverloads
-  constructor(stream: InputStream?, options: JSONOptions? = null) : this(
-    InputStreamReader(stream),
-    options
-  ) {
-  }
+  constructor(stream: InputStream, options: JSONOptions = JSONOptions.defaultOptions)
+      : this(InputStreamReader(stream), options)
+
 
   private fun more(): Boolean {
     return if (back || eof) {
@@ -132,7 +90,7 @@ class JSONParser @JvmOverloads constructor(reader: Reader, options: JSONOptions?
 
   private fun peek(): Char {
     if (eof) {
-      return 0
+      return Char.MIN_VALUE
     }
     val c: Int
     try {
@@ -142,7 +100,7 @@ class JSONParser @JvmOverloads constructor(reader: Reader, options: JSONOptions?
     } catch (e: Exception) {
       throw syntaxError("Could not peek from source", e)
     }
-    return if (c == -1) 0 else c.toChar()
+    return if (c == -1) Char.MIN_VALUE else c.toChar()
   }
 
   private operator fun next(): Char {
@@ -150,15 +108,14 @@ class JSONParser @JvmOverloads constructor(reader: Reader, options: JSONOptions?
       back = false
       return current
     }
-    val c: Int
-    c = try {
+    val c: Int = try {
       reader.read()
     } catch (e: Exception) {
       throw syntaxError("Could not read from source", e)
     }
     if (c < 0) {
       eof = true
-      return 0
+      return Char.MIN_VALUE
     }
     previous = current
     current = c.toChar()
@@ -174,21 +131,22 @@ class JSONParser @JvmOverloads constructor(reader: Reader, options: JSONOptions?
   // https://262.ecma-international.org/5.1/#sec-7.3
   private fun isLineTerminator(c: Char): Boolean {
     return when (c) {
-      '\n', '\r', 0x2028, 0x2029 -> true
-      else                       -> false
+      '\n', '\r', '\u2028', '\u2029' -> true
+      else                           -> false
     }
   }
   // https://spec.json5.org/#white-space
   private fun isWhitespace(c: Char): Boolean {
     return when (c) {
-      '\t', '\n', 0x0B, '\f', '\r', ' ', 0xA0, 0x2028, 0x2029, 0xFEFF -> true
-      else                                                            ->         // Unicode category "Zs" (space separators)
+      '\t', '\n', '\u000B', UnicodeCharacter.FormFeed.char, '\r', ' ', '\u00A0', '\u2028', '\u2029', '\uFEFF' -> true
+      else                                                                                                    ->         // Unicode category "Zs" (space separators)
         Character.getType(c) == Character.SPACE_SEPARATOR.toInt()
     }
   }
   // https://262.ecma-international.org/5.1/#sec-9.3.1
+  @Deprecated("use stdlib", ReplaceWith("c.isDigit()"))
   private fun isDecimalDigit(c: Char): Boolean {
-    return c >= '0' && c <= '9'
+    return c.isDigit()
   }
 
   private fun nextMultiLineComment() {
@@ -238,7 +196,7 @@ class JSONParser @JvmOverloads constructor(reader: Reader, options: JSONOptions?
     }
   }
 
-  private fun nextCleanTo(delimiters: String): String {
+  private fun nextCleanTo(delimiters: String = nextCleanToDelimiters): String {
     val result = StringBuilder()
     while (true) {
       if (!more()) {
@@ -254,16 +212,13 @@ class JSONParser @JvmOverloads constructor(reader: Reader, options: JSONOptions?
     return result.toString()
   }
 
-  private fun dehex(c: Char): Int {
-    if (c >= '0' && c <= '9') {
-      return c - '0'
+  private fun deHex(c: Char): Int {
+    return when (c) {
+      in '0'..'9' -> c - '0'
+      in 'a'..'f' -> c - 'a' + 0xA
+      in 'A'..'F' -> c - 'A' + 0xA
+      else        -> -1
     }
-    if (c >= 'a' && c <= 'f') {
-      return c - 'a' + 0xA
-    }
-    return if (c >= 'A' && c <= 'F') {
-      c - 'A' + 0xA
-    } else -1
   }
 
   private fun unicodeEscape(member: Boolean, part: Boolean): Char {
@@ -273,7 +228,7 @@ class JSONParser @JvmOverloads constructor(reader: Reader, options: JSONOptions?
     for (i in 0..3) {
       val n = next()
       value += n
-      val hex = dehex(n)
+      val hex = deHex(n)
       if (hex == -1) {
         throw syntaxError("Illegal unicode escape sequence '\\u$value' in $where")
       }
@@ -340,7 +295,7 @@ class JSONParser @JvmOverloads constructor(reader: Reader, options: JSONOptions?
               continue
             }
             'f'             -> {
-              result.append('\f')
+              result.append(UnicodeCharacter.FormFeed.char)
               continue
             }
             'n'             -> {
@@ -361,7 +316,7 @@ class JSONParser @JvmOverloads constructor(reader: Reader, options: JSONOptions?
             }
             '0'             -> {
               val p = peek()
-              if (isDecimalDigit(p)) {
+              if (p.isDigit()) {
                 throw syntaxError("Illegal escape sequence '\\0$p'")
               }
               result.append(0.toChar())
@@ -374,7 +329,7 @@ class JSONParser @JvmOverloads constructor(reader: Reader, options: JSONOptions?
               while (i < 2) {
                 n = next()
                 value += n
-                val hex = dehex(n)
+                val hex = deHex(n)
                 if (hex == -1) {
                   throw syntaxError("Illegal hex escape sequence '\\x$value' in string")
                 }
@@ -384,7 +339,7 @@ class JSONParser @JvmOverloads constructor(reader: Reader, options: JSONOptions?
               n = codepoint.toChar()
             }
             'u'             -> n = unicodeEscape(false, false)
-            else            -> if (isDecimalDigit(n)) {
+            else            -> if (n.isDigit()) {
               throw syntaxError("Illegal escape sequence '\\$n'")
             }
           }
@@ -396,18 +351,24 @@ class JSONParser @JvmOverloads constructor(reader: Reader, options: JSONOptions?
     return result.toString()
   }
 
-  private fun isMemberNameChar(n: Char, part: Boolean): Boolean {
+  private fun isMemberNameChar(n: Char, isNotEmpty: Boolean): Boolean {
     if (n == '$' || n == '_' || n.code == 0x200C || n.code == 0x200D) {
       return true
     }
-    val type = Character.getType(n)
-    when (type) {
-      Character.UPPERCASE_LETTER, Character.LOWERCASE_LETTER, Character.TITLECASE_LETTER, Character.MODIFIER_LETTER, Character.OTHER_LETTER, Character.LETTER_NUMBER -> return true
-      Character.NON_SPACING_MARK, Character.COMBINING_SPACING_MARK, Character.DECIMAL_DIGIT_NUMBER, Character.CONNECTOR_PUNCTUATION                                  -> if (part) {
-        return true
-      }
+
+    return when (n.category) {
+      CharCategory.UPPERCASE_LETTER,
+      CharCategory.LOWERCASE_LETTER,
+      CharCategory.TITLECASE_LETTER,
+      CharCategory.MODIFIER_LETTER,
+      CharCategory.OTHER_LETTER,
+      CharCategory.LETTER_NUMBER         -> return true
+      CharCategory.NON_SPACING_MARK,
+      CharCategory.COMBINING_SPACING_MARK,
+      CharCategory.DECIMAL_DIGIT_NUMBER,
+      CharCategory.CONNECTOR_PUNCTUATION -> isNotEmpty
+      else                               -> return false
     }
-    return false
   }
   /**
    * Reads a member name from the source according to the
@@ -428,7 +389,7 @@ class JSONParser @JvmOverloads constructor(reader: Reader, options: JSONOptions?
       if (!more()) {
         throw syntaxError("Unexpected end of data")
       }
-      val part = result.length > 0
+      val isNotEmpty = result.isNotEmpty()
       prev = n
       n = next()
       if (n == '\\') { // unicode escape sequence
@@ -436,15 +397,15 @@ class JSONParser @JvmOverloads constructor(reader: Reader, options: JSONOptions?
         if (n != 'u') {
           throw syntaxError("Illegal escape sequence '\\$n' in key")
         }
-        n = unicodeEscape(true, part)
-      } else if (!isMemberNameChar(n, part)) {
+        n = unicodeEscape(true, isNotEmpty)
+      } else if (!isMemberNameChar(n, isNotEmpty)) {
         back()
         break
       }
       checkSurrogate(prev, n)
       result.append(n)
     }
-    if (result.length == 0) {
+    if (result.isEmpty()) {
       throw syntaxError("Empty key")
     }
     return result.toString()
@@ -478,7 +439,7 @@ class JSONParser @JvmOverloads constructor(reader: Reader, options: JSONOptions?
       }
     }
     back()
-    val string = nextCleanTo(",]}")
+    val string = nextCleanTo()
     if (string == "null") {
       return null
     }
@@ -558,12 +519,8 @@ class JSONParser @JvmOverloads constructor(reader: Reader, options: JSONOptions?
     throw JSONException("Illegal value '$string'")
   }
 
-  fun syntaxError(message: String, cause: Throwable?): JSONException {
+  fun syntaxError(message: String, cause: Throwable? = null): JSONException {
     return JSONException(message + this, cause)
-  }
-
-  fun syntaxError(message: String): JSONException {
-    return JSONException(message + this)
   }
 
   override fun toString(): String {

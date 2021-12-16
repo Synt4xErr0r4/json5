@@ -33,13 +33,9 @@ class JSONArray(
   private val values: MutableList<Any?> = mutableListOf()
 ) : Iterable<Any?> by values {
 
-  /**
-   * Constructs a new JSONArray from a string
-   */
-  constructor(source: String?) : this(JSONParser(source))
-  /**
-   * Constructs a new JSONArray from a JSONParser
-   */
+  /** Constructs a new JSONArray from a string */
+  constructor(source: String ) : this(JSONParser(source))
+  /** Constructs a new JSONArray from a JSONParser */
   constructor(parser: JSONParser) : this() {
     var c: Char
     if (parser.nextClean() != '[') {

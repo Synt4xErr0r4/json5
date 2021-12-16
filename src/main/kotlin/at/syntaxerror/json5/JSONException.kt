@@ -30,6 +30,6 @@ package at.syntaxerror.json5
  * @version 1.0.0
  */
 class JSONException(
-  message: String?,
-  cause: Throwable?,
+  message: String,
+  cause: Throwable? = null,
 ) : RuntimeException(message, cause)

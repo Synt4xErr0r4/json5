@@ -23,6 +23,8 @@
  */
 package at.syntaxerror.json5
 
+import at.syntaxerror.json5.UnicodeCharacter.FormFeed
+import at.syntaxerror.json5.UnicodeCharacter.VerticalTab
 import java.time.Instant
 
 /**
@@ -207,43 +209,33 @@ class JSONStringify private constructor() {
       value: Any?, indent: String, indentFactor: Int,
       options: JSONOptions
     ): String {
-      if (value == null) {
-        return "null"
-      }
-      if (value is JSONObject) {
-        return toString(value, indent, indentFactor, options)
-      }
-      if (value is JSONArray) {
-        return toString(value, indent, indentFactor, options)
-      }
-      if (value is String) {
-        return quote(value as String?, options)
-      }
-      if (value is Instant) {
-        val instant = value
-        return if (options.stringifyUnixInstants) {
-          instant.epochSecond.toString()
-        } else quote(instant.toString(), options)
-      }
-      if (value is Double) {
-        val d = value
-        if (!options.allowNaN && java.lang.Double.isNaN(d)) {
-          throw JSONException("Illegal NaN in JSON")
+      return when (value) {
+        null          -> "null"
+        is JSONObject -> toString(value, indent, indentFactor, options)
+        is JSONArray  -> toString(value, indent, indentFactor, options)
+        is String     -> quote(value as String?, options)
+        is Instant    -> {
+          if (options.stringifyUnixInstants) {
+            value.epochSecond.toString()
+          } else quote(value.toString(), options)
         }
-        if (!options.allowInfinity && java.lang.Double.isInfinite(d)) {
-          throw JSONException("Illegal Infinity in JSON")
+        is Double     -> {
+          when {
+            !options.allowNaN && value.isNaN()           -> throw JSONException("Illegal NaN in JSON")
+            !options.allowInfinity && value.isInfinite() -> throw JSONException("Illegal Infinity in JSON")
+            else                                         -> value.toString()
+          }
+          value.toString()
         }
+        else          -> value.toString()
       }
-      return value.toString()
     }
 
     fun quote(string: String?): String {
-      return quote(string, null)
+      return quote(string)
     }
 
-    private fun quote(string: String?, options: JSONOptions?): String {
-      var options = options
-      options = options ?: JSONOptions.defaultOptions
+    private fun quote(string: String?, options: JSONOptions = JSONOptions.defaultOptions): String {
       if (string == null || string.isEmpty()) {
         return if (options.quoteSingle) "''" else "\"\""
       }
@@ -257,15 +249,21 @@ class JSONStringify private constructor() {
           continue
         }
         when (c) {
-          '\\' -> quoted.append("\\\\")
-          '\b' -> quoted.append("\\b")
-          '\f' -> quoted.append("\\u000c")
-          '\n' -> quoted.append("\\n")
-          '\r' -> quoted.append("\\r")
-          '\t' -> quoted.append("\\t")
-          0x0B -> quoted.append("\\v")
-          else -> when (Character.getType(c)) {
-            Character.FORMAT, Character.LINE_SEPARATOR, Character.PARAGRAPH_SEPARATOR, Character.CONTROL, Character.PRIVATE_USE, Character.SURROGATE, Character.UNASSIGNED -> {
+          '\\'             -> quoted.append("\\\\")
+          '\b'             -> quoted.append("\\b")
+          FormFeed.char    -> quoted.append(FormFeed.representation)
+          '\n'             -> quoted.append("\\n")
+          '\r'             -> quoted.append("\\r")
+          '\t'             -> quoted.append("\\t")
+          VerticalTab.char -> quoted.append(VerticalTab.representation)
+          else             -> when (c.category) {
+           CharCategory.FORMAT,
+           CharCategory.LINE_SEPARATOR,
+           CharCategory.PARAGRAPH_SEPARATOR,
+           CharCategory.CONTROL,
+           CharCategory.PRIVATE_USE,
+           CharCategory.SURROGATE,
+           CharCategory.UNASSIGNED -> {
               quoted.append("\\u")
               quoted.append(String.format("%04X", c))
             }
