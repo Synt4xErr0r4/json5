@@ -114,6 +114,11 @@ internal class UnitTests {
 
   @Test
   fun testInstant() {
+
+    JSONOptions.defaultOptions.run {
+      parseInstants = true
+    }
+
     assertTrue(
       parse("{a:1338150759534}")
         .isInstant("a")
