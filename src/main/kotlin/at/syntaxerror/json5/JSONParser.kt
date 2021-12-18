@@ -53,14 +53,11 @@ class JSONParser(
   /** whether the current character should be re-read */
   private var back: Boolean = false
   /** the absolute position in the string */
-  var index: Long = -1
-    private set
+  private var index: Long = -1
   /** the relative position in the line */
-  var character: Long = 0
-    private set
+  private var character: Long = 0
   /** the line number */
-  var line: Long = 1
-    private set
+  private var line: Long = 1
   /** the previous character */
   private var previous: Char = Char.MIN_VALUE
   /** the current character */
@@ -130,6 +127,7 @@ class JSONParser(
     }
     return current
   }
+
   // https://262.ecma-international.org/5.1/#sec-7.3
   private fun isLineTerminator(c: Char): Boolean {
     return when (c) {
@@ -137,6 +135,7 @@ class JSONParser(
       else                           -> false
     }
   }
+
   // https://spec.json5.org/#white-space
   private fun isWhitespace(c: Char): Boolean {
     return when (c) {
@@ -146,11 +145,6 @@ class JSONParser(
         // Unicode category "Zs" (space separators)
         Character.getType(c) == Character.SPACE_SEPARATOR.toInt()
     }
-  }
-  // https://262.ecma-international.org/5.1/#sec-9.3.1
-  @Deprecated("use stdlib", ReplaceWith("c.isDigit()"))
-  private fun isDecimalDigit(c: Char): Boolean {
-    return c.isDigit()
   }
 
   private fun nextMultiLineComment() {
@@ -263,6 +257,7 @@ class JSONParser(
       )
     }
   }
+
   // https://spec.json5.org/#prod-JSON5String
   private fun nextString(quote: Char): String {
     val result = StringBuilder()
@@ -288,7 +283,6 @@ class JSONParser(
           if (n == '\r' && peek() == '\n') {
             next()
           }
-
           // escaped line terminator/ line continuation
           continue
         } else {
@@ -364,19 +358,23 @@ class JSONParser(
     }
 
     return when (n.category) {
+
       CharCategory.UPPERCASE_LETTER,
       CharCategory.LOWERCASE_LETTER,
       CharCategory.TITLECASE_LETTER,
       CharCategory.MODIFIER_LETTER,
       CharCategory.OTHER_LETTER,
       CharCategory.LETTER_NUMBER         -> return true
+
       CharCategory.NON_SPACING_MARK,
       CharCategory.COMBINING_SPACING_MARK,
       CharCategory.DECIMAL_DIGIT_NUMBER,
       CharCategory.CONNECTOR_PUNCTUATION -> isNotEmpty
+
       else                               -> return false
     }
   }
+
   /**
    * Reads a member name from the source according to the
    * [JSON5 Specification](https://spec.json5.org/#prod-JSON5MemberName)

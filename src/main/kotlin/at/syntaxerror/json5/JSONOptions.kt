@@ -29,7 +29,7 @@ package at.syntaxerror.json5
  * @author SyntaxError404
  * @since 1.1.0
  */
-class JSONOptions {
+data class JSONOptions(
   /**
    * Whether instants should be parsed as such.
    * If this is `false`, [.parseStringInstants] and [.parseUnixInstants]
@@ -41,80 +41,68 @@ class JSONOptions {
    *
    * *This is a [Parser][JSONParser]-only option*
    */
-  var parseInstants = true
+  var parseInstants: Boolean = true,
   /**
    * Whether string instants (according to
    * [RFC 3339, Section 5.6](https://datatracker.ietf.org/doc/html/rfc3339#section-5.6))
    * should be parsed as such.
    * Ignored if [.parseInstants] is `false`
    *
-   *
    * Default: `true`
-   *
    *
    * *This is a [Parser][JSONParser]-only option*
    */
-  var parseStringInstants = true
+  var parseStringInstants: Boolean = true,
   /**
    * Whether unix instants (integers) should be parsed as such.
    * Ignored if [.parseInstants] is `false`
    *
-   *
    * Default: `true`
-   *
    *
    * *This is a [Parser][JSONParser]-only option*
    */
-  var parseUnixInstants = true
+  var parseUnixInstants: Boolean = true,
   /**
    * Whether instants should be stringifyed as unix timestamps.
    * If this is `false`, instants will be stringifyed as strings
    * (according to [RFC 3339, Section 5.6](https://datatracker.ietf.org/doc/html/rfc3339#section-5.6)).
    *
-   *
    * Default: `false`
-   *
    *
    * *This is a [Stringify][JSONStringify]-only option*
    */
-  var stringifyUnixInstants = false
+  var stringifyUnixInstants: Boolean = false,
   /**
    * Whether `NaN` should be allowed as a number
    *
-   *
    * Default: `true`
    */
-  var allowNaN = true
+  var allowNaN: Boolean = true,
   /**
    * Whether `Infinity` should be allowed as a number.
    * This applies to both `+Infinity` and `-Infinity`
    *
-   *
    * Default: `true`
    */
-  var allowInfinity = true
+  var allowInfinity: Boolean = true,
   /**
    * Whether invalid unicode surrogate pairs should be allowed
    *
-   *
    * Default: `true`
-   *
    *
    * *This is a [Parser][JSONParser]-only option*
    */
-  var allowInvalidSurrogates = true
+  var allowInvalidSurrogates: Boolean = true,
   /**
    * Whether string should be single-quoted (`'`) instead of double-quoted (`"`).
    * This also includes a [JSONObject&#39;s][JSONObject] member names
    *
-   *
    * Default: `false`
-   *
    *
    * *This is a [Stringify][JSONStringify]-only option*
    */
-  var quoteSingle = false
-
+  var quoteSingle: Boolean = false,
+) {
   companion object {
     /**
      * The default options for parsing and stringifying

@@ -35,7 +35,10 @@ class JSONArray(
 ) : Iterable<Any?> by values {
 
   /** Constructs a new JSONArray from a string */
-  constructor(source: String) : this(JSONParser(source))
+  constructor(
+    source: String,
+    options: JSONOptions = JSONOptions.defaultOptions
+  ) : this(JSONParser(source, options))
 
   /** Constructs a new JSONArray from a JSONParser */
   constructor(parser: JSONParser) : this() {

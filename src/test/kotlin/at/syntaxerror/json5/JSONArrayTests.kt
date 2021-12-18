@@ -17,9 +17,9 @@ import java.math.BigInteger
 
 class JSONArrayTests : BehaviorSpec({
 
-  JSONOptions.defaultOptions.run {
+  val testOptions = JSONOptions(
     parseInstants = false
-  }
+  )
 
   Given("a JSON5 array should start with '['") {
     val validArrayStarter = '['
@@ -34,7 +34,7 @@ class JSONArrayTests : BehaviorSpec({
                       ]
                     """.trimIndent()
 
-        val result = JSONArray(valid)
+        val result = JSONArray(valid, testOptions)
 
         Then("expect the array can be pretty-printed") {
           //language=JSON5
@@ -77,7 +77,7 @@ class JSONArrayTests : BehaviorSpec({
                         """.trimIndent()
 
             val thrown = shouldThrow<JSONException.SyntaxError> {
-              JSONArray(invalid)
+              JSONArray(invalid, testOptions)
             }
 
             assertSoftly(thrown.message) {
