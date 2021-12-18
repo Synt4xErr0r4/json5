@@ -178,7 +178,7 @@ public class JSONArray implements Iterable<Object> {
 	 * Checks if the value with the specified index is {@code null}
 	 * 
 	 * @param index the index
-	 * @return whether or not the value is {@code null}
+	 * @return whether the value is {@code null}
 	 * 
 	 * @throws JSONException if the index does not exist
 	 */
@@ -190,7 +190,7 @@ public class JSONArray implements Iterable<Object> {
 	 * Checks if the value with the specified index is a boolean
 	 * 
 	 * @param index the index
-	 * @return whether or not the value is a boolean
+	 * @return whether the value is a boolean
 	 * 
 	 * @throws JSONException if the index does not exist
 	 */
@@ -202,7 +202,7 @@ public class JSONArray implements Iterable<Object> {
 	 * Checks if the value with the specified index is a string
 	 * 
 	 * @param index the index
-	 * @return whether or not the value is a string
+	 * @return whether the value is a string
 	 * 
 	 * @throws JSONException if the index does not exist
 	 */
@@ -215,7 +215,7 @@ public class JSONArray implements Iterable<Object> {
 	 * Checks if the value with the specified index is a number
 	 * 
 	 * @param index the index
-	 * @return whether or not the value is a number
+	 * @return whether the value is a number
 	 * 
 	 * @throws JSONException if the index does not exist
 	 */
@@ -228,7 +228,7 @@ public class JSONArray implements Iterable<Object> {
 	 * Checks if the value with the specified index is a JSONObject
 	 * 
 	 * @param index the index
-	 * @return whether or not the value is a JSONObject
+	 * @return whether the value is a JSONObject
 	 * 
 	 * @throws JSONException if the index does not exist
 	 */
@@ -240,7 +240,7 @@ public class JSONArray implements Iterable<Object> {
 	 * Checks if the value with the specified index is a JSONArray
 	 * 
 	 * @param index the index
-	 * @return whether or not the value is a JSONArray
+	 * @return whether the value is a JSONArray
 	 * 
 	 * @throws JSONException if the index does not exist
 	 */
@@ -252,7 +252,7 @@ public class JSONArray implements Iterable<Object> {
 	 * Checks if the value with the specified index is an Instant
 	 * 
 	 * @param index the index
-	 * @return whether or not the value is an Instant
+	 * @return whether the value is an Instant
 	 * @since 1.1.0
 	 * 
 	 * @throws JSONException if the index does not exist

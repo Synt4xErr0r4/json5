@@ -11,6 +11,7 @@ This is a reference implementation, capable of parsing JSON5 data according to t
 ## Getting started
 
 In order to use the code, you can either [download the jar](https://github.com/Synt4xErr0r4/json5/releases/download/1.2.0/json5-1.2.0.jar), or use the Maven dependency:
+
 ```xml
 <!-- Repository -->
 
@@ -35,6 +36,7 @@ The library itself is located in the module `json5`.
 ### Deserializing (Parsing)
 
 To parse a JSON object (`{ ... }`), all you need to do is:
+
 ```java
 import at.syntaxerror.json5.JSONObject;
 
@@ -44,6 +46,7 @@ JSONObject jsonObject = new JSONObject("{ ... }");
 ```
 
 Or if you want to read directly from a `Reader` or `InputStream`:
+
 ```java
 import java.io.InputStream;
 import at.syntaxerror.json5.JSONObject;
@@ -63,6 +66,7 @@ Just replace `JSONObject` with `JSONArray` to read list-like data (`[ ... ]`).
 ### Serializing (Stringifying)
 
 Both the `JSONObject` and `JSONArray` class contain two methods for serialization:
+
 - `toString()` and
 - `toString(int indentFactor)`
 
@@ -71,7 +75,8 @@ The `indentFactor` of the `toString(int indentFactor)` method will enable pretty
 Any value `< 1` will disable pretty-printing. The indent factor indicates the number of spaces before each key-value pair/ value:
 
 `indentFactor = 2`
-```json
+
+```json5
 {
   "key0": "value0",
   "key1": {
@@ -90,7 +95,8 @@ Any value `< 1` will disable pretty-printing. The indent factor indicates the nu
 ```
 
 `indentFactor = 0`
-```json
+
+```json5
 {"key0":"value0","key1":{"nested":123},"key2":false}
 
 ["value",{"nested":123},false]
@@ -105,6 +111,7 @@ The `set` methods are used to override or set values in the JSON object/ array.
 The `add` and `insert` methods are used to add values to a JSON array.  
 
 Supported data types are:
+
 - `boolean`
 - `byte`
 - `short`
@@ -131,6 +138,7 @@ Numbers are internally always stored as either a `java.math.BigInteger`, `java.m
 returning raw `java.lang.Object`s will return numbers as one of those types. The same behaviour applies to the `getNumber` methods.
 
 ## Changelog
+
 ### v1.1.0
 
 Instants (date and time) are now supported. This option can be toggled via the options listed below.
@@ -141,32 +149,32 @@ You can also set the default options used if the supplied options are `null`, by
 The following options are currently implemented:
 
 - `parseInstants`: (default `true`, *Parser-only*) ([proposed here](https://github.com/json5/json5-spec/issues/4))  
-    Whether or not instants should be parsed as such.  
+    Whether instants should be parsed as such.  
     If this is `false`, `parseStringInstants` and `parseUnixInstants` are ignored
 - `parseStringInstants`: (default `true`, *Parser-only*) ([proposed here](https://github.com/json5/json5-spec/issues/4))  
-    Whether or not string instants (according to [RFC 3339, Section 5.6](https://datatracker.ietf.org/doc/html/rfc3339#section-5.6)) should be parsed as such.  
+    Whether string instants (according to [RFC 3339, Section 5.6](https://datatracker.ietf.org/doc/html/rfc3339#section-5.6)) should be parsed as such.  
     Ignored if `parseInstants` is `false`
 - `parseUnixInstants`: (default `true`, *Parser-only*) ([proposed here](https://github.com/json5/json5-spec/issues/4))  
-    Whether or not unix instants (integers) should be parsed as such.  
+    Whether unix instants (integers) should be parsed as such.  
     Ignored if `parseInstants` is `false`
 - `stringifyUnixInstants`: (default `false`, *Stringify-only*) ([proposed here](https://github.com/json5/json5-spec/issues/4))  
-    Whether or not instants should be stringifyed as unix timestamps (integers).  
+    Whether instants should be stringifyed as unix timestamps (integers).  
     If this is `false`, instants will be stringifyed as strings (according to [RFC 3339, Section 5.6](https://datatracker.ietf.org/doc/html/rfc3339#section-5.6))
 - `allowNaN`: (default `true`, *Parser-only*) ([proposed here](https://github.com/json5/json5-spec/issues/24))  
-    Whether or not `NaN` should be allowed as a number
+    Whether `NaN` should be allowed as a number
 - `allowInfinity`: (default `true`, *Parser-only*) ([proposed here](https://github.com/json5/json5-spec/issues/24))  
-    Whether or not `Infinity` should be allowed as a number. This applies to both `+Infinity` and `-Infinity`
+    Whether `Infinity` should be allowed as a number. This applies to both `+Infinity` and `-Infinity`
 - `allowInvalidSurrogates`: (default `true`, *Parser-only*) ([proposed here](https://github.com/json5/json5-spec/issues/12))  
-    Whether or not invalid unicode surrogate pairs should be allowed
+    Whether invalid unicode surrogate pairs should be allowed
 - `quoteSingle`: (default `false`, *Stringify-only*)  
-    Whether or not string should be single-quoted (`'`) instead of double-quoted (`"`). This also includes a JSONObject's member names
+    Whether strings should be single-quoted (`'`) instead of double-quoted (`"`). This also includes a JSONObject's member names
 
 ### v1.2.0
 
-- added `clear()` method 
-	removes all values from an object/array
-- added `remove(String key)` and `remove(int index)` methods
-	remove a certain key/index from an object/array
+- added `clear()` method  
+  removes all values from an object/array
+- added `remove(String key)` and `remove(int index)` methods  
+  remove a certain key/index from an object/array
 
 ## Documentation
 

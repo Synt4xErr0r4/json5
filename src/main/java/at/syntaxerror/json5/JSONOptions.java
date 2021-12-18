@@ -63,7 +63,7 @@ public class JSONOptions {
 	private static JSONOptions defaultOptions = builder().build();
 	
 	/**
-	 * Whether or not instants should be parsed as such.
+	 * Whether instants should be parsed as such.
 	 * If this is {@code false}, {@link #isParseStringInstants()} and {@link #isParseUnixInstants()}
 	 * are ignored
 	 * <p>
@@ -73,13 +73,13 @@ public class JSONOptions {
 	 * 
 	 * @param parseInstants a boolean
 	 * 
-	 * @return whether or not instants should be parsed
+	 * @return whether instants should be parsed
 	 * @since 1.1.0
 	 */
 	@Builder.Default
 	boolean parseInstants = true;
 	/**
-	 * Whether or not string instants (according to 
+	 * Whether string instants (according to 
 	 * <a href="https://datatracker.ietf.org/doc/html/rfc3339#section-5.6">RFC 3339, Section 5.6</a>)
 	 * should be parsed as such.
 	 * Ignored if {@link #isParseInstants()} is {@code false}
@@ -90,13 +90,13 @@ public class JSONOptions {
 	 * 
 	 * @param parseStringInstants a boolean
 	 * 
-	 * @return whether or not string instants should be parsed
+	 * @return whether string instants should be parsed
 	 * @since 1.1.0
 	 */
 	@Builder.Default
 	boolean parseStringInstants = true;
 	/**
-	 * Whether or not unix instants (integers) should be parsed as such.
+	 * Whether unix instants (integers) should be parsed as such.
 	 * Ignored if {@link #isParseInstants()} is {@code false}
 	 * <p>
 	 * Default: {@code true}
@@ -105,14 +105,14 @@ public class JSONOptions {
 	 * 
 	 * @param parseUnixInstants a boolean
 	 * 
-	 * @return whether or not unix instants should be parsed
+	 * @return whether unix instants should be parsed
 	 * @since 1.1.0
 	 */
 	@Builder.Default
 	boolean parseUnixInstants = true;
 	
 	/**
-	 * Whether or not instants should be stringifyed as unix timestamps.
+	 * Whether instants should be stringifyed as unix timestamps.
 	 * If this is {@code false}, instants will be stringifyed as strings
 	 * (according to <a href="https://datatracker.ietf.org/doc/html/rfc3339#section-5.6">RFC 3339, Section 5.6</a>).
 	 * <p>
@@ -122,41 +122,41 @@ public class JSONOptions {
 	 * 
 	 * @param stringifyUnixInstants a boolean
 	 * 
-	 * @return whether or not instants should be stringifyed as unix timestamps
+	 * @return whether instants should be stringifyed as unix timestamps
 	 * @since 1.1.0
 	 */
 	@Builder.Default
 	boolean stringifyUnixInstants = false;
 	
 	/**
-	 * Whether or not {@code NaN} should be allowed as a number
+	 * Whether {@code NaN} should be allowed as a number
 	 * <p>
 	 * Default: {@code true}
 	 * 
 	 * @param allowNaN a boolean
 	 * 
-	 * @return whether or not {@code NaN} should be allowed
+	 * @return whether {@code NaN} should be allowed
 	 * @since 1.1.0
 	 */
 	@Builder.Default
 	boolean allowNaN = true;
 	
 	/**
-	 * Whether or not {@code Infinity} should be allowed as a number.
+	 * Whether {@code Infinity} should be allowed as a number.
 	 * This applies to both {@code +Infinity} and {@code -Infinity}
 	 * <p>
 	 * Default: {@code true}
 	 * 
 	 * @param allowInfinity a boolean
 	 * 
-	 * @return whether or not {@code Infinity} should be allowed
+	 * @return whether {@code Infinity} should be allowed
 	 * @since 1.1.0
 	 */
 	@Builder.Default
 	boolean allowInfinity = true;
 	
 	/**
-	 * Whether or not invalid unicode surrogate pairs should be allowed
+	 * Whether invalid unicode surrogate pairs should be allowed
 	 * <p>
 	 * Default: {@code true}
 	 * <p>
@@ -164,14 +164,14 @@ public class JSONOptions {
 	 * 
 	 * @param allowInvalidSurrogates a boolean
 	 * 
-	 * @return whether or not invalid unicode surrogate pairs should be allowed
+	 * @return whether invalid unicode surrogate pairs should be allowed
 	 * @since 1.1.0
 	 */
 	@Builder.Default
 	boolean allowInvalidSurrogates = true;
 	
 	/**
-	 * Whether or not string should be single-quoted ({@code '}) instead of double-quoted ({@code "}).
+	 * Whether strings should be single-quoted ({@code '}) instead of double-quoted ({@code "}).
 	 * This also includes a {@link JSONObject JSONObject's} member names
 	 * <p>
 	 * Default: {@code false}
@@ -180,7 +180,7 @@ public class JSONOptions {
 	 * 
 	 * @param quoteSingle a boolean
 	 * 
-	 * @return whether or not string should be single-quoted
+	 * @return whether strings should be single-quoted
 	 * @since 1.1.0
 	 */
 	@Builder.Default

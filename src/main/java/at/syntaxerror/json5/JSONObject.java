@@ -204,7 +204,7 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	 * Checks if a key exists within the JSONObject
 	 * 
 	 * @param key the key
-	 * @return whether or not the key exists
+	 * @return whether the key exists
 	 */
 	public boolean has(String key) {
 		return values.containsKey(key);
@@ -214,7 +214,7 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	 * Checks if the value with the specified key is {@code null}
 	 * 
 	 * @param key the key
-	 * @return whether or not the value is {@code null}
+	 * @return whether the value is {@code null}
 	 * 
 	 * @throws JSONException if the key does not exist
 	 */
@@ -226,7 +226,7 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	 * Checks if the value with the specified key is a boolean
 	 * 
 	 * @param key the key
-	 * @return whether or not the value is a boolean
+	 * @return whether the value is a boolean
 	 * 
 	 * @throws JSONException if the key does not exist
 	 */
@@ -238,7 +238,7 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	 * Checks if the value with the specified key is a string
 	 * 
 	 * @param key the key
-	 * @return whether or not the value is a string
+	 * @return whether the value is a string
 	 * 
 	 * @throws JSONException if the key does not exist
 	 */
@@ -251,7 +251,7 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	 * Checks if the value with the specified key is a number
 	 * 
 	 * @param key the key
-	 * @return whether or not the value is a number
+	 * @return whether the value is a number
 	 * 
 	 * @throws JSONException if the key does not exist
 	 */
@@ -264,7 +264,7 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	 * Checks if the value with the specified key is a JSONObject
 	 * 
 	 * @param key the key
-	 * @return whether or not the value is a JSONObject
+	 * @return whether the value is a JSONObject
 	 * 
 	 * @throws JSONException if the key does not exist
 	 */
@@ -276,7 +276,7 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	 * Checks if the value with the specified key is a JSONArray
 	 * 
 	 * @param key the key
-	 * @return whether or not the value is a JSONArray
+	 * @return whether the value is a JSONArray
 	 * 
 	 * @throws JSONException if the key does not exist
 	 */
@@ -288,7 +288,7 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	 * Checks if the value with the specified key is an Instant
 	 * 
 	 * @param key the key
-	 * @return whether or not the value is an Instant
+	 * @return whether the value is an Instant
 	 * @since 1.1.0
 	 * 
 	 * @throws JSONException if the key does not exist

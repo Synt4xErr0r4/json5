@@ -61,10 +61,10 @@ public class JSONParser {
 	private final Reader reader;
 	private final JSONOptions options;
 
-	/** whether or not the end of the file has been reached */
+	/** whether the end of the file has been reached */
 	private boolean eof;
 
-	/** whether or not the current character should be re-read */
+	/** whether the current character should be re-read */
 	private boolean back;
 	
 	/** the absolute position in the string */
