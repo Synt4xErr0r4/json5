@@ -500,31 +500,8 @@ class JSONParser(
         return factor * d
       }
       PATTERN_NUMBER_HEX.matches(string)     -> {
-
-        // TODO try this:
-        //      string.toLong(radix = 16)
-
-        val hex: String
-        val factor: Int
-        when (string[0]) {
-          '+'  -> {
-            hex = string.substring(3) // +0x
-            factor = 1
-          }
-          '-'  -> {
-            hex = string.substring(3) // -0x
-            factor = -1
-          }
-          else -> {
-            hex = string.substring(2) // 0x
-            factor = 1
-          }
-        }
-
-        val bigint = BigInteger(hex, 16)
-        return if (factor == -1) {
-          bigint.negate()
-        } else bigint
+        val hex = string.uppercase().split("0X").joinToString("")
+        return BigInteger(hex, 16)
       }
       else                                   -> throw JSONException("Illegal value '$string'")
     }
