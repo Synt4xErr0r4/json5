@@ -5,8 +5,16 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.collections.shouldContainInOrder
 import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.comparables.shouldBeEqualComparingTo
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldMatch
 import io.kotest.matchers.types.shouldBeInstanceOf
+import io.kotest.property.Arb
+import io.kotest.property.Exhaustive
+import io.kotest.property.arbitrary.bind
+import io.kotest.property.arbitrary.positiveLong
+import io.kotest.property.checkAll
+import io.kotest.property.exhaustive.collection
 import java.math.BigInteger
 import org.intellij.lang.annotations.Language
 
@@ -24,7 +32,7 @@ class JSONParserTests : BehaviorSpec({
                     10,
                   ]
                 """.trimIndent()
-    When("the valid array is parsed as a stream") {
+    When("JSONParser parses the array as a stream") {
 
       val parser = JSONParser(valid.byteInputStream(), testOptions)
       val parsedValue = parser.nextValue()
@@ -33,7 +41,7 @@ class JSONParserTests : BehaviorSpec({
         assertSoftly(parsedValue) {
           shouldBeInstanceOf<JSONArray>()
           shouldHaveSize(2)
-          shouldContainInOrder("I'm a string",  BigInteger.valueOf(10))
+          shouldContainInOrder("I'm a string", BigInteger.valueOf(10))
         }
       }
       Then("expect there are no more values") {
@@ -42,6 +50,45 @@ class JSONParserTests : BehaviorSpec({
         }
         assertSoftly(thrown.message) {
           shouldContain("Unexpected end of data")
+        }
+      }
+    }
+  }
+
+  Given("a json5 array with a hex value") {
+
+    When(" the array as a stream") {
+
+      Then("expect JSONParser parses the hex value") {
+
+        val arbHex = Arb.bind(
+          Exhaustive.collection(setOf("+", "", "-")),
+          Exhaustive.collection(setOf("0x", "0X")),
+          Arb.positiveLong(),
+        ) { sign, prefix, long ->
+          val hex = long.toString(16)
+          val expected = BigInteger.valueOf(long).run {
+            if (sign == "-") negate() else abs()
+          }
+
+          expected to (sign + prefix + hex)
+        }
+
+        checkAll(arbHex) { (expectedNumber, hexString) ->
+          hexString shouldMatch Regex("[+-]?0[xX][0-9a-fA-F]+")
+
+          val json5Array = """ [ $hexString ] """
+
+          val parser = JSONParser(json5Array, testOptions)
+          val parsedValue = parser.nextValue()
+
+          assertSoftly(parsedValue) {
+            shouldBeInstanceOf<JSONArray>()
+            shouldHaveSize(1)
+            val parsedHex = elementAt(0)
+            parsedHex.shouldBeInstanceOf<BigInteger>()
+            parsedHex shouldBeEqualComparingTo expectedNumber
+          }
         }
       }
     }
