@@ -95,7 +95,7 @@ data class JSONOptions(
   var allowInvalidSurrogates: Boolean = true,
   /**
    * Whether string should be single-quoted (`'`) instead of double-quoted (`"`).
-   * This also includes a [JSONObject&#39;s][JSONObject] member names
+   * This also includes a [JSONObject&#39;s][DecodeJson5Object] member names
    *
    * Default: `false`
    *

@@ -34,7 +34,7 @@ class JSONArrayTests : BehaviorSpec({
                       ]
                     """.trimIndent()
 
-        val result = JSONArray(valid, testOptions)
+        val result = DecodeJson5Array(valid, testOptions)
 
         Then("expect the array can be pretty-printed") {
           //language=JSON5
@@ -77,7 +77,7 @@ class JSONArrayTests : BehaviorSpec({
                         """.trimIndent()
 
             val thrown = shouldThrow<JSONException.SyntaxError> {
-              JSONArray(invalid, testOptions)
+              DecodeJson5Array(invalid, testOptions)
             }
 
             assertSoftly(thrown.message) {

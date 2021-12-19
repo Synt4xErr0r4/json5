@@ -26,11 +26,11 @@ package at.syntaxerror.json5
 
 /**
  * A JSONArray is an array structure capable of holding multiple values, including other JSONArrays
- * and [JSONObjects][JSONObject]
+ * and [JSONObjects][DecodeJson5Object]
  *
  * @author SyntaxError404
  */
-class JSONArray(
+class DecodeJson5Array(
   private val values: MutableList<Any?> = mutableListOf(),
 ) : Iterable<Any?> by values {
 
@@ -70,9 +70,9 @@ class JSONArray(
   fun toList(): List<Any?> {
     return values.map { value ->
       when (value) {
-        is JSONObject -> value.toMap()
-        is JSONArray  -> value.toList()
-        else          -> value
+        is DecodeJson5Object -> value.toMap()
+        is DecodeJson5Array  -> value.toList()
+        else                 -> value
       }
     }
   }

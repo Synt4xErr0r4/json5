@@ -28,7 +28,7 @@ import at.syntaxerror.json5.UnicodeCharacter.VerticalTab
 import java.time.Instant
 
 /**
- * A utility class for serializing [JSONObjects][JSONObject] and [JSONArrays][JSONArray]
+ * A utility class for serializing [JSONObjects][DecodeJson5Object] and [JSONArrays][DecodeJson5Array]
  * into their string representations
  *
  * @author SyntaxError404
@@ -65,7 +65,7 @@ class JSONStringify(
    * ```
    */
   fun encodeObject(
-    jsonObject: JSONObject,
+    jsonObject: DecodeJson5Object,
     indentFactor: UInt,
     indent: String = "",
   ): String {
@@ -117,7 +117,7 @@ class JSONStringify(
    * ```
    */
   fun encodeArray(
-    array: JSONArray,
+    array: DecodeJson5Array,
     indentFactor: UInt,
     indent: String = "",
   ): String {
@@ -148,10 +148,10 @@ class JSONStringify(
     indentFactor: UInt,
   ): String {
     return when (value) {
-      null          -> "null"
-      is JSONObject -> encodeObject(value, indentFactor, indent)
-      is JSONArray  -> encodeArray(value, indentFactor, indent)
-      is String     -> encodeString(value)
+      null                 -> "null"
+      is DecodeJson5Object -> encodeObject(value, indentFactor, indent)
+      is DecodeJson5Array  -> encodeArray(value, indentFactor, indent)
+      is String            -> encodeString(value)
       is Instant    -> {
         if (options.stringifyUnixInstants) {
           value.epochSecond.toString()

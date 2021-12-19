@@ -75,12 +75,12 @@ internal class UnitTests {
   fun testStringify() {
     val testOptions = JSONOptions.defaultOptions
     testOptions.stringifyUnixInstants = true
-    val json = JSONObject()
+    val json = DecodeJson5Object()
     json["a"] = null
     json["b"] = false
     json["c"] = true
-    json["d"] = JSONObject()
-    json["e"] = JSONArray()
+    json["d"] = DecodeJson5Object()
+    json["e"] = DecodeJson5Array()
     json["f"] = Double.NaN
     json["g"] = 123e+45
     json["h"] = (-123e45).toFloat()
@@ -215,8 +215,8 @@ internal class UnitTests {
     )
   }
 
-  private fun parse(str: String): JSONObject {
-    return JSONObject(JSONParser(str))
+  private fun parse(str: String): DecodeJson5Object {
+    return DecodeJson5Object(JSONParser(str))
   }
 
 }

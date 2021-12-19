@@ -37,7 +37,7 @@ import java.time.format.DateTimeParseException
 
 /**
  * A JSONParser is used to convert a source string into tokens, which then are used to construct
- * [JSONObjects][JSONObject] and [JSONArrays][JSONArray]
+ * [JSONObjects][DecodeJson5Object] and [JSONArrays][DecodeJson5Array]
  *
  * The reader is not [closed][Reader.close]
  *
@@ -434,11 +434,11 @@ class JSONParser(
       }
       '{'       -> {
         back()
-        return JSONObject(this)
+        return DecodeJson5Object(this)
       }
       '['       -> {
         back()
-        return JSONArray(this)
+        return DecodeJson5Array(this)
       }
     }
     back()

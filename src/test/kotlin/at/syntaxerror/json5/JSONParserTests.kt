@@ -39,7 +39,7 @@ class JSONParserTests : BehaviorSpec({
 
       Then("expect the value is a JSON Array") {
         assertSoftly(parsedValue) {
-          shouldBeInstanceOf<JSONArray>()
+          shouldBeInstanceOf<DecodeJson5Array>()
           shouldHaveSize(2)
           shouldContainInOrder("I'm a string", BigInteger.valueOf(10))
         }
@@ -83,7 +83,7 @@ class JSONParserTests : BehaviorSpec({
           val parsedValue = parser.nextValue()
 
           assertSoftly(parsedValue) {
-            shouldBeInstanceOf<JSONArray>()
+            shouldBeInstanceOf<DecodeJson5Array>()
             shouldHaveSize(1)
             val parsedHex = elementAt(0)
             parsedHex.shouldBeInstanceOf<BigInteger>()

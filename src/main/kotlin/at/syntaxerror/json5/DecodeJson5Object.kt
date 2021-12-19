@@ -30,11 +30,11 @@ import java.util.function.Predicate
 
 /**
  * A JSONObject is a map (key-value) structure capable of holding multiple values, including other
- * [JSONArrays][JSONArray] and JSONObjects
+ * [JSONArrays][DecodeJson5Array] and JSONObjects
  *
  * @author SyntaxError404
  */
-class JSONObject(
+class DecodeJson5Object(
   private val values: MutableMap<String, Any?> = mutableMapOf()
 ) : Iterable<Map.Entry<String, Any?>> by values.asIterable() {
 
@@ -85,15 +85,15 @@ class JSONObject(
   fun toMap(): Map<String, Any?> {
     return values.mapValues { (_, value) ->
       when (value) {
-        is JSONObject -> value.toMap()
-        is JSONArray  -> value.toList()
-        else          -> value
+        is DecodeJson5Object -> value.toMap()
+        is DecodeJson5Array  -> value.toList()
+        else                 -> value
       }
     }
   }
 
   /**
-   * Checks if a key exists within the [JSONObject]
+   * Checks if a key exists within the [DecodeJson5Object]
    */
   fun has(key: String): Boolean {
     return values.containsKey(key)
@@ -178,7 +178,7 @@ class JSONObject(
   /**
    * Sets the value at a given key
    */
-  operator fun set(key: String, value: Any?): JSONObject {
+  operator fun set(key: String, value: Any?): DecodeJson5Object {
     values[key] = sanitize(value)
     return this
   }
@@ -250,10 +250,10 @@ class JSONObject(
         return null
       }
       return when (value) {
-        is Boolean, is String, is JSONObject, is JSONArray, is Instant -> {
+        is Boolean, is String, is DecodeJson5Object, is DecodeJson5Array, is Instant -> {
           value
         }
-        is Number                                                      -> {
+        is Number                                                                    -> {
           if (value is Double) {
             if (value.isFinite()) {
               return BigDecimal.valueOf(value)
