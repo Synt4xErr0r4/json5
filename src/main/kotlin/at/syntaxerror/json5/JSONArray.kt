@@ -31,8 +31,10 @@ package at.syntaxerror.json5
  * @author SyntaxError404
  */
 class JSONArray(
-  private val values: MutableList<Any?> = mutableListOf()
+  private val values: MutableList<Any?> = mutableListOf(),
 ) : Iterable<Any?> by values {
+
+  private val stringify: JSONStringify = JSONStringify()
 
   /** Constructs a new JSONArray from a string */
   constructor(
@@ -40,7 +42,6 @@ class JSONArray(
     options: JSONOptions = JSONOptions.defaultOptions
   ) : this(JSONParser(source, options))
 
-  /** Constructs a new JSONArray from a JSONParser */
   constructor(parser: JSONParser) : this() {
     if (parser.nextClean() != '[') {
       throw parser.createSyntaxException("A JSONArray must begin with '['")
@@ -55,12 +56,9 @@ class JSONArray(
       val value = parser.nextValue()
       values.add(value)
       c = parser.nextClean()
-      if (c == ']') {
-        // finish parsing this array
-        return
-      }
-      if (c != ',') {
-        throw parser.createSyntaxException("Expected ',' or ']' after value, got '$c' instead")
+      when {
+        c == ']' -> return // finish parsing this array
+        c != ',' -> throw parser.createSyntaxException("Expected ',' or ']' after value, got '$c' instead")
       }
     }
   }
@@ -103,18 +101,14 @@ class JSONArray(
    * ```
    *
    * @param indentFactor the indentation factor
-   * @see JSONStringify.toString
+   * @see JSONStringify.encodeArray
    */
-  fun toString(indentFactor: Int): String {
-    return JSONStringify.toString(this, indentFactor)
+  fun toString(indentFactor: UInt): String {
+    return stringify.encodeArray(this, indentFactor)
   }
 
-  /**
-   * Converts the JSONArray into its compact string representation.
-   *
-   * @return the compact string representation
-   */
+  /** Converts the JSONArray into its compact string representation. */
   override fun toString(): String {
-    return toString(0)
+    return toString(0u)
   }
 }

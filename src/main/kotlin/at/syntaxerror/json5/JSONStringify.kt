@@ -33,7 +33,10 @@ import java.time.Instant
  *
  * @author SyntaxError404
  */
-object JSONStringify {
+class JSONStringify(
+  private val options: JSONOptions = JSONOptions.defaultOptions
+) {
+
   /**
    * Converts a JSONObject into its string representation. The indentation factor enables
    * pretty-printing and defines how many spaces (' ') should be placed before each key/value pair.
@@ -58,18 +61,36 @@ object JSONStringify {
    * {"key0":"value0","key1":{"nested":123},"key2":false}
    * ```
    */
-  fun toString(
+  fun encodeObject(
     jsonObject: JSONObject,
-    indentFactor: Int,
-    options: JSONOptions = JSONOptions.defaultOptions
+    indentFactor: UInt,
+    indent: String = "",
   ): String {
-    return toString(
-      jsonObject,
-      "",
-      0.coerceAtLeast(indentFactor),
-      options
-    )
+    val sb = StringBuilder()
+    val childIndent = indent + " ".repeat(indentFactor.toInt())
+    val isNested = indentFactor > 0u
+    sb.append('{')
+    jsonObject.forEach { (key, value) ->
+      if (sb.length != 1) {
+        sb.append(',')
+      }
+      if (isNested) {
+        sb.append('\n').append(childIndent)
+      }
+      sb.append(quote(key))
+        .append(':')
+      if (isNested) {
+        sb.append(' ')
+      }
+      sb.append(encode(value, childIndent, indentFactor))
+    }
+    if (isNested) {
+      sb.append('\n').append(indent)
+    }
+    sb.append('}')
+    return sb.toString()
   }
+
   /**
    * Converts a JSONArray into its string representation. The indentation factor enables
    * pretty-printing and defines how many spaces (' ') should be placed before each value. A factor
@@ -93,87 +114,43 @@ object JSONStringify {
    * ["value",{"nested":123},false]
    * ```
    */
-  fun toString(
+  fun encodeArray(
     array: JSONArray,
-    indentFactor: Int,
-    options: JSONOptions = JSONOptions.defaultOptions
-  ): String {
-    return toString(
-      array,
-      "",
-      0.coerceAtLeast(indentFactor),
-      options
-    )
-  }
-
-  private fun toString(
-    jsonObject: JSONObject,
-    indent: String,
-    indentFactor: Int,
-    options: JSONOptions
+    indentFactor: UInt,
+    indent: String = "",
   ): String {
     val sb = StringBuilder()
-    val childIndent = indent + " ".repeat(indentFactor)
-    sb.append('{')
-    jsonObject.forEach { (key, value) ->
-      if (sb.length != 1) {
-        sb.append(',')
-      }
-      if (indentFactor > 0) {
-        sb.append('\n').append(childIndent)
-      }
-      sb.append(quote(key, options))
-        .append(':')
-      if (indentFactor > 0) {
-        sb.append(' ')
-      }
-      sb.append(toString(value, childIndent, indentFactor, options))
-    }
-    if (indentFactor > 0) {
-      sb.append('\n').append(indent)
-    }
-    sb.append('}')
-    return sb.toString()
-  }
-
-  private fun toString(
-    array: JSONArray,
-    indent: String,
-    indentFactor: Int,
-    options: JSONOptions
-  ): String {
-    val sb = StringBuilder()
-    val childIndent = indent + " ".repeat(indentFactor)
+    val childIndent = indent + " ".repeat(indentFactor.toInt())
+    val isNested = indentFactor > 0u
     sb.append('[')
     for (value in array) {
       if (sb.length != 1) {
         sb.append(',')
       }
-      if (indentFactor > 0) {
+      if (isNested) {
         sb.append('\n').append(childIndent)
       }
-      sb.append(toString(value, childIndent, indentFactor, options))
+      sb.append(encode(value, childIndent, indentFactor))
     }
-    if (indentFactor > 0) {
+    if (isNested) {
       sb.append('\n').append(indent)
     }
     sb.append(']')
     return sb.toString()
   }
 
-  private fun toString(
-    value: Any?, indent: String, indentFactor: Int,
-    options: JSONOptions
+  private fun encode(
+    value: Any?, indent: String, indentFactor: UInt,
   ): String {
     return when (value) {
       null          -> "null"
-      is JSONObject -> toString(value, indent, indentFactor, options)
-      is JSONArray  -> toString(value, indent, indentFactor, options)
-      is String     -> quote(value as String?, options)
+      is JSONObject -> encodeObject(value, indentFactor, indent)
+      is JSONArray  -> encodeArray(value, indentFactor, indent)
+      is String     -> quote(value)
       is Instant    -> {
         if (options.stringifyUnixInstants) {
           value.epochSecond.toString()
-        } else quote(value.toString(), options)
+        } else quote(value.toString())
       }
       is Double     -> {
         when {
@@ -187,7 +164,7 @@ object JSONStringify {
     }
   }
 
-  fun quote(string: String?, options: JSONOptions = JSONOptions.defaultOptions): String {
+  fun quote(string: String?): String {
     if (string == null || string.isEmpty()) {
       return if (options.quoteSingle) "''" else "\"\""
     }
@@ -219,9 +196,7 @@ object JSONStringify {
             quoted.append("\\u")
             quoted.append(String.format("%04X", c))
           }
-          else                    -> quoted.append(
-            c
-          )
+          else                    -> quoted.append(c)
         }
       }
     }

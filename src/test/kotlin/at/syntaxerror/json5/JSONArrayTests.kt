@@ -38,7 +38,7 @@ class JSONArrayTests : BehaviorSpec({
 
         Then("expect the array can be pretty-printed") {
           //language=JSON5
-          result.toString(2) shouldBe
+          result.toString(2u) shouldBe
               """
               [
                 "I'm a string",

@@ -55,11 +55,11 @@ class JSONParserTests : BehaviorSpec({
     }
   }
 
-  Given("a json5 array with a hex value") {
+  Given("an initial number encoded as a hexadecimal value") {
 
-    When(" the array as a stream") {
+    When("JSONParser parsers an Json5 array that contains the hexadecimal value") {
 
-      Then("expect JSONParser parses the hex value") {
+      Then("expect the parsed value equals the initial number") {
 
         val arbHex = Arb.bind(
           Exhaustive.collection(setOf("+", "", "-")),

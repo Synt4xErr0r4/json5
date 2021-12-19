@@ -34,14 +34,16 @@ import java.util.function.Predicate
  *
  * @author SyntaxError404
  */
-class JSONObject private constructor(
-  private val values: MutableMap<String, Any?> = mutableMapOf(),
-  private val iterable: Iterable<Map.Entry<String, Any?>> = values.asIterable()
-) : Iterable<Map.Entry<String, Any?>> by iterable {
+class JSONObject(
+  private val values: MutableMap<String, Any?> = mutableMapOf()
+) : Iterable<Map.Entry<String, Any?>> by values.asIterable() {
 
-  constructor(values: MutableMap<String, Any?> = mutableMapOf()) : this(values, values.asIterable())
+  private val stringify: JSONStringify = JSONStringify()
 
-  constructor(source: String) : this(JSONParser(source))
+  constructor(
+    source: String,
+    options: JSONOptions = JSONOptions.defaultOptions
+  ) : this(parser = JSONParser(source))
 
   constructor(parser: JSONParser) : this() {
     var c: Char
@@ -60,7 +62,7 @@ class JSONObject private constructor(
         }
       }
       if (has(key)) {
-        throw JSONException("Duplicate key ${JSONStringify.quote(key)}")
+        throw JSONException("Duplicate key ${stringify.quote(key)}")
       }
       c = parser.nextClean()
       if (c != ':') {
@@ -69,14 +71,13 @@ class JSONObject private constructor(
       val value = parser.nextValue()
       values[key] = value
       c = parser.nextClean()
-      if (c == '}') {
-        return
-      }
-      if (c != ',') {
-        throw parser.createSyntaxException("Expected ',' or '}' after value, got '$c' instead")
+      when {
+        c == '}' -> return // finish parsing this array
+        c != ',' -> throw parser.createSyntaxException("Expected ',' or '}' after value, got '$c' instead")
       }
     }
   }
+
   /**
    * Converts the JSONObject into a map. All JSONObjects and JSONArrays contained within this
    * JSONObject will be converted into their Map or List form as well
@@ -206,29 +207,33 @@ class JSONObject private constructor(
    * ```
    *
    * @param indentFactor the indentation factor
-   * @see JSONStringify.toString
+   * @see JSONStringify.encodeObject
    */
-  fun toString(indentFactor: Int): String {
-    return JSONStringify.toString(this, indentFactor)
+  fun toString(indentFactor: UInt): String {
+    return stringify.encodeObject(this, indentFactor)
   }
 
   /**
    * Converts the JSONObject into its compact string representation.
    */
   override fun toString(): String {
-    return toString(0)
+    return toString(0u)
   }
 
   private fun checkKey(key: String): Any? {
     if (!values.containsKey(key)) {
-      throw JSONException("JSONObject[" + JSONStringify.quote(key) + "] does not exist")
+      throw JSONException("JSONObject[" + stringify.quote(key) + "] does not exist")
     }
     return values[key]
   }
 
-  private inline fun <reified T> checkType(predicate: Predicate<String>, key: String, type: String): T? {
+  private inline fun <reified T> checkType(
+    predicate: Predicate<String>,
+    key: String,
+    type: String
+  ): T? {
     if (!predicate.test(key)) {
-      throw JSONException("JSONObject[${JSONStringify.quote(key)}] is not of type $type")
+      throw JSONException("JSONObject[${stringify.quote(key)}] is not of type $type")
     }
     return values[key] as? T
   }
