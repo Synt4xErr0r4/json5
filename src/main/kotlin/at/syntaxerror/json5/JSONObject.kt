@@ -62,7 +62,7 @@ class JSONObject(
         }
       }
       if (has(key)) {
-        throw JSONException("Duplicate key ${stringify.quote(key)}")
+        throw JSONException("Duplicate key ${stringify.encodeString(key)}")
       }
       c = parser.nextClean()
       if (c != ':') {
@@ -222,7 +222,7 @@ class JSONObject(
 
   private fun checkKey(key: String): Any? {
     if (!values.containsKey(key)) {
-      throw JSONException("JSONObject[" + stringify.quote(key) + "] does not exist")
+      throw JSONException("JSONObject[" + stringify.encodeString(key) + "] does not exist")
     }
     return values[key]
   }
@@ -233,7 +233,7 @@ class JSONObject(
     type: String
   ): T? {
     if (!predicate.test(key)) {
-      throw JSONException("JSONObject[${stringify.quote(key)}] is not of type $type")
+      throw JSONException("JSONObject[${stringify.encodeString(key)}] is not of type $type")
     }
     return values[key] as? T
   }

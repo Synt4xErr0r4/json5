@@ -37,6 +37,9 @@ class JSONStringify(
   private val options: JSONOptions = JSONOptions.defaultOptions
 ) {
 
+  private val quoteToken = if (options.quoteSingle) '\'' else '"'
+  private val emptyString = "$quoteToken$quoteToken"
+
   /**
    * Converts a JSONObject into its string representation. The indentation factor enables
    * pretty-printing and defines how many spaces (' ') should be placed before each key/value pair.
@@ -66,25 +69,25 @@ class JSONStringify(
     indentFactor: UInt,
     indent: String = "",
   ): String {
-    val sb = StringBuilder()
     val childIndent = indent + " ".repeat(indentFactor.toInt())
-    val isNested = indentFactor > 0u
+    val isIndented = indentFactor > 0u
+
+    val sb = StringBuilder()
     sb.append('{')
     jsonObject.forEach { (key, value) ->
       if (sb.length != 1) {
         sb.append(',')
       }
-      if (isNested) {
+      if (isIndented) {
         sb.append('\n').append(childIndent)
       }
-      sb.append(quote(key))
-        .append(':')
-      if (isNested) {
+      sb.append(encodeString(key)).append(':')
+      if (isIndented) {
         sb.append(' ')
       }
       sb.append(encode(value, childIndent, indentFactor))
     }
-    if (isNested) {
+    if (isIndented) {
       sb.append('\n').append(indent)
     }
     sb.append('}')
@@ -108,7 +111,6 @@ class JSONStringify(
    * ]
    * ```
    *
-   *
    * `indentFactor = 0`:
    * ```
    * ["value",{"nested":123},false]
@@ -119,20 +121,21 @@ class JSONStringify(
     indentFactor: UInt,
     indent: String = "",
   ): String {
-    val sb = StringBuilder()
     val childIndent = indent + " ".repeat(indentFactor.toInt())
-    val isNested = indentFactor > 0u
+    val isIndented = indentFactor > 0u
+
+    val sb = StringBuilder()
     sb.append('[')
     for (value in array) {
       if (sb.length != 1) {
         sb.append(',')
       }
-      if (isNested) {
+      if (isIndented) {
         sb.append('\n').append(childIndent)
       }
       sb.append(encode(value, childIndent, indentFactor))
     }
-    if (isNested) {
+    if (isIndented) {
       sb.append('\n').append(indent)
     }
     sb.append(']')
@@ -140,17 +143,19 @@ class JSONStringify(
   }
 
   private fun encode(
-    value: Any?, indent: String, indentFactor: UInt,
+    value: Any?,
+    indent: String,
+    indentFactor: UInt,
   ): String {
     return when (value) {
       null          -> "null"
       is JSONObject -> encodeObject(value, indentFactor, indent)
       is JSONArray  -> encodeArray(value, indentFactor, indent)
-      is String     -> quote(value)
+      is String     -> encodeString(value)
       is Instant    -> {
         if (options.stringifyUnixInstants) {
           value.epochSecond.toString()
-        } else quote(value.toString())
+        } else encodeString(value.toString())
       }
       is Double     -> {
         when {
@@ -158,49 +163,43 @@ class JSONStringify(
           !options.allowInfinity && value.isInfinite() -> throw JSONException("Illegal Infinity in JSON")
           else                                         -> value.toString()
         }
-        value.toString()
       }
       else          -> value.toString()
     }
   }
 
-  fun quote(string: String?): String {
-    if (string == null || string.isEmpty()) {
-      return if (options.quoteSingle) "''" else "\"\""
-    }
-    val qt = if (options.quoteSingle) '\'' else '"'
-    val quoted = StringBuilder(string.length + 2)
-    quoted.append(qt)
-    for (c in string.toCharArray()) {
-      if (c == qt) {
-        quoted.append('\\')
-        quoted.append(c)
-        continue
-      }
-      when (c) {
-        '\\'             -> quoted.append("\\\\")
-        '\b'             -> quoted.append("\\b")
-        FormFeed.char    -> quoted.append(FormFeed.representation)
-        '\n'             -> quoted.append("\\n")
-        '\r'             -> quoted.append("\\r")
-        '\t'             -> quoted.append("\\t")
-        VerticalTab.char -> quoted.append(VerticalTab.representation)
-        else             -> when (c.category) {
-          CharCategory.FORMAT,
-          CharCategory.LINE_SEPARATOR,
-          CharCategory.PARAGRAPH_SEPARATOR,
-          CharCategory.CONTROL,
-          CharCategory.PRIVATE_USE,
-          CharCategory.SURROGATE,
-          CharCategory.UNASSIGNED -> {
-            quoted.append("\\u")
-            quoted.append(String.format("%04X", c))
+  fun encodeString(string: String?): String {
+    return if (string.isNullOrEmpty()) {
+      emptyString
+    } else {
+      string
+        .asSequence()
+        .joinToString(
+          separator = "",
+          prefix = quoteToken.toString(),
+          postfix = quoteToken.toString()
+        ) { c: Char ->
+          when (c) {
+            quoteToken       -> "\\$c"
+            '\\'             -> "\\\\"
+            '\b'             -> "\\b"
+            FormFeed.char    -> FormFeed.representation
+            '\n'             -> "\\n"
+            '\r'             -> "\\r"
+            '\t'             -> "\\t"
+            VerticalTab.char -> VerticalTab.representation
+            else             -> when (c.category) {
+              CharCategory.FORMAT,
+              CharCategory.LINE_SEPARATOR,
+              CharCategory.PARAGRAPH_SEPARATOR,
+              CharCategory.CONTROL,
+              CharCategory.PRIVATE_USE,
+              CharCategory.SURROGATE,
+              CharCategory.UNASSIGNED -> String.format("\\u%04X", c)
+              else                    -> c.toString()
+            }
           }
-          else                    -> quoted.append(c)
         }
-      }
     }
-    quoted.append(qt)
-    return quoted.toString()
   }
 }
