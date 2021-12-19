@@ -24,5 +24,6 @@
  * </pre>
  */
 module json5 {
-	exports at.syntaxerror.json5;
+  requires kotlin.stdlib;
+  exports at.syntaxerror.json5;
 }
