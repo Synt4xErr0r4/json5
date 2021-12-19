@@ -33,7 +33,7 @@ import kotlinx.serialization.json.JsonElement
  *
  * @author SyntaxError404
  */
-object DecodeJson5Array {
+class DecodeJson5Array {
 
   fun decode(parser: JSONParser): JsonArray {
     val content: MutableList<JsonElement> = mutableListOf()

@@ -34,7 +34,7 @@ import kotlinx.serialization.json.JsonObject
  * @author SyntaxError404
  */
 class JSONStringify(
-  private val options: JSONOptions = JSONOptions.defaultOptions
+  private val options: JSONOptions
 ) {
 
   private val quoteToken = if (options.quoteSingle) '\'' else '"'
@@ -45,7 +45,6 @@ class JSONStringify(
    * pretty-printing and defines how many spaces (' ') should be placed before each key/value pair.
    * A factor of `< 1` disables pretty-printing and discards any optional whitespace
    * characters.
-   *
    *
    * `indentFactor = 2`:
    * ```
@@ -81,7 +80,7 @@ class JSONStringify(
       if (isIndented) {
         sb.append('\n').append(childIndent)
       }
-      sb.append(encodeString(key)).append(':')
+      sb.append(escapeString(key)).append(':')
       if (isIndented) {
         sb.append(' ')
       }
@@ -151,11 +150,13 @@ class JSONStringify(
       null          -> "null"
       is JsonObject -> encodeObject(value, indentFactor, indent)
       is JsonArray  -> encodeArray(value, indentFactor, indent)
-      is String     -> encodeString(value)
+      is String     -> escapeString(value)
       is Instant    -> {
         if (options.stringifyUnixInstants) {
           value.epochSecond.toString()
-        } else encodeString(value.toString())
+        } else {
+          escapeString(value.toString())
+        }
       }
       is Double     -> {
         when {
@@ -168,7 +169,7 @@ class JSONStringify(
     }
   }
 
-  fun encodeString(string: String?): String {
+  fun escapeString(string: String?): String {
     return if (string.isNullOrEmpty()) {
       emptyString
     } else {

@@ -102,11 +102,4 @@ data class JSONOptions(
    * *This is a [Stringify][JSONStringify]-only option*
    */
   var quoteSingle: Boolean = false,
-) {
-  companion object {
-    /**
-     * The default options for parsing and stringifying
-     */
-    var defaultOptions = JSONOptions()
-  }
-}
+)

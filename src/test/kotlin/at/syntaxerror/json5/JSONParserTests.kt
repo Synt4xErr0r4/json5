@@ -25,9 +25,9 @@ import org.intellij.lang.annotations.Language
 
 class JSONParserTests : BehaviorSpec({
 
-  val testOptions = JSONOptions(
+  val j5 = Json5Module {
     parseInstants = false
-  )
+  }
 
   Given("a valid json5 array") {
     @Language("JSON5")
@@ -39,7 +39,7 @@ class JSONParserTests : BehaviorSpec({
                 """.trimIndent()
     When("JSONParser parses the array as a stream") {
 
-      val parser = JSONParser(valid.reader(), testOptions)
+      val parser = JSONParser(valid.reader(), j5)
       val parsedValue = parser.nextValue()
 
       Then("expect the value is a JSON Array") {
@@ -83,7 +83,7 @@ class JSONParserTests : BehaviorSpec({
 
           val json5Array = """ [ $hexString ] """
 
-          val parser = JSONParser(json5Array.reader(), testOptions)
+          val parser = JSONParser(json5Array.reader(), j5)
           val parsedValue = parser.nextValue()
 
           assertSoftly(parsedValue) {

@@ -57,6 +57,7 @@ tasks.withType<KotlinCompile>().configureEach {
     "-Xopt-in=kotlin.RequiresOptIn",
     "-Xopt-in=kotlin.ExperimentalStdlibApi",
     "-Xopt-in=kotlin.time.ExperimentalTime",
+    "-Xopt-in=kotlinx.serialization.ExperimentalSerializationApi",
   )
 }
 

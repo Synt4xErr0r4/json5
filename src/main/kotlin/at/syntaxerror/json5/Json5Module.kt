@@ -10,8 +10,11 @@ import kotlinx.serialization.json.JsonObject
 class Json5Module(
   configure: JSONOptions.() -> Unit = {}
 ) {
-  private val options: JSONOptions = JSONOptions()
-  private val stringify: JSONStringify = JSONStringify(options)
+  internal val options: JSONOptions = JSONOptions()
+  internal val stringify: JSONStringify = JSONStringify(options)
+
+  internal val arrayDecoder = DecodeJson5Array()
+  internal val objectDecoder = DecodeJson5Object(this)
 
   init {
     options.configure()
@@ -22,8 +25,8 @@ class Json5Module(
 
   fun decodeObject(reader: Reader): JsonObject {
     return reader.use { r ->
-      val parser = JSONParser(r, options)
-      DecodeJson5Object.decode(parser)
+      val parser = JSONParser(r, this)
+      objectDecoder.decode(parser)
     }
   }
 
@@ -32,8 +35,8 @@ class Json5Module(
 
   fun decodeArray(reader: Reader): JsonArray {
     return reader.use { r ->
-      val parser = JSONParser(r, options)
-      DecodeJson5Array.decode(parser)
+      val parser = JSONParser(r, this)
+      arrayDecoder.decode(parser)
     }
   }
 

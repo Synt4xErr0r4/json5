@@ -40,7 +40,7 @@ import kotlinx.serialization.json.JsonPrimitive
  */
 class JSONParser(
   reader: Reader,
-  private val options: JSONOptions = JSONOptions.defaultOptions
+  private val j5: Json5Module,
 ) {
 
   private val reader: Reader = if (reader.markSupported()) reader else BufferedReader(reader)
@@ -198,26 +198,23 @@ class JSONParser(
     return result.toString()
   }
 
-  private fun deHex(c: Char): Int {
+  private fun deHex(c: Char): Int? {
     return when (c) {
       in '0'..'9' -> c - '0'
       in 'a'..'f' -> c - 'a' + 0xA
       in 'A'..'F' -> c - 'A' + 0xA
-      else        -> -1
+      else        -> null
     }
   }
 
   private fun unicodeEscape(member: Boolean, part: Boolean): Char {
-    val where = if (member) "key" else "string"
     var value = ""
     var codepoint = 0
     for (i in 0..3) {
       val n = next()
       value += n
       val hex = deHex(n)
-      if (hex == -1) {
-        throw createSyntaxException("Illegal unicode escape sequence '\\u$value' in $where")
-      }
+        ?: throw createSyntaxException("Illegal unicode escape sequence '\\u$value' in ${if (member) "key" else "string"}")
       codepoint = codepoint or (hex shl (3 - i shl 2))
     }
     if (member && !isMemberNameChar(codepoint.toChar(), part)) {
@@ -227,7 +224,7 @@ class JSONParser(
   }
 
   private fun checkSurrogate(hi: Char, lo: Char) {
-    if (options.allowInvalidSurrogates) {
+    if (j5.options.allowInvalidSurrogates) {
       return
     }
     if (!Character.isHighSurrogate(hi) || !Character.isLowSurrogate(lo)) {
@@ -316,9 +313,7 @@ class JSONParser(
                 n = next()
                 value += n
                 val hex = deHex(n)
-                if (hex == -1) {
-                  throw createSyntaxException("Illegal hex escape sequence '\\x$value' in string")
-                }
+                  ?: throw createSyntaxException("Illegal hex escape sequence '\\x$value' in string")
                 codepoint = codepoint or (hex shl (1 - i shl 2))
                 ++i
               }
@@ -411,11 +406,11 @@ class JSONParser(
       }
       '{'       -> {
         back()
-        return DecodeJson5Object.decode(this)
+        return j5.objectDecoder.decode(this)
       }
       '['       -> {
         back()
-        return DecodeJson5Array.decode(this)
+        return j5.arrayDecoder.decode(this)
       }
     }
     back()

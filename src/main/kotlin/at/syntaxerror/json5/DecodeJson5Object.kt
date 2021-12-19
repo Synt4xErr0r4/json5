@@ -32,9 +32,9 @@ import kotlinx.serialization.json.JsonObject
  *
  * @author SyntaxError404
  */
-object DecodeJson5Object {
-
-  private val stringify: JSONStringify = JSONStringify()
+class DecodeJson5Object(
+  private val j5: Json5Module,
+) {
 
   fun decode(parser: JSONParser): JsonObject {
 
@@ -56,7 +56,7 @@ object DecodeJson5Object {
         }
       }
       if (content.containsKey(key)) {
-        throw JSONException("Duplicate key ${stringify.encodeString(key)}")
+        throw JSONException("Duplicate key ${j5.stringify.escapeString(key)}")
       }
       c = parser.nextClean()
       if (c != ':') {
@@ -73,6 +73,4 @@ object DecodeJson5Object {
 
     return JsonObject(content)
   }
-
-
 }
