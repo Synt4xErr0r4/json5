@@ -24,6 +24,7 @@
 package at.syntaxerror.json5
 
 import java.time.Instant
+import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -35,27 +36,38 @@ import org.junit.jupiter.params.provider.ValueSource
  * @author SyntaxError404
  */
 internal class UnitTests {
+
   @Test
   fun testDoubleQuoted() {
     assertEquals(
-      "Test \" 123", parse("{ a: \"Test \\\" 123\" }")
-        .getString("a")
+      "Test \" 123",
+
+      parse(
+        //language=JSON5
+        """{ a: "Test \" 123" }"""
+      ).getString("a")
     )
   }
 
   @Test
   fun testSingleQuoted() {
     assertEquals(
-      "Test ' 123", parse("{ a: 'Test \\' 123' }")
-        .getString("a")
+      "Test ' 123",
+      parse(
+        //language=JSON5
+        """{ a: 'Test \' 123' }"""
+      ).getString("a")
     )
   }
 
   @Test
   fun testMixedQuoted() {
     assertEquals(
-      "Test ' 123", parse("{ a: \"Test \\' 123\" }")
-        .getString("a")
+      "Test ' 123",
+      parse(
+        //language=JSON5
+        """{ a: "Test \' 123" }"""
+      ).getString("a")
     )
   }
 
@@ -74,10 +86,34 @@ internal class UnitTests {
     json["h"] = (-123e45).toFloat()
     json["i"] = 123L
     json["j"] = "Lorem Ipsum"
-    json["k"] = Instant.now()
-    assertEquals(
-      json.toString(),
-      parse(json.toString()).toString()
+    json["k"] = Instant.ofEpochSecond(1639908193)
+
+    @Language("JSON5")
+    val expected =
+      """
+        {
+          "a": null,
+          "b": false,
+          "c": true,
+          "d": {
+          },
+          "e": [
+          ],
+          "f": NaN,
+          "g": 1.23E+47,
+          "h": -Infinity,
+          "i": 123,
+          "j": "Lorem Ipsum",
+          "k": 1639908193
+        }
+      """.trimIndent()
+
+    assertAll(
+      { assertEquals(expected, json.toString(2u)) },
+      {
+        val parsedValue = parse(json.toString(2u))
+        assertEquals(expected, parsedValue.toString(2u))
+      },
     )
   }
 
@@ -85,8 +121,10 @@ internal class UnitTests {
   fun testEscapes() {
     assertEquals(
       "\n\r\u000c\b\t\u000B\u0000\u12Fa\u007F",
-      parse("{ a: \"\\n\\r\\u000c\\b\\t\\v\\0\\u12Fa\\x7F\" }")
-        .getString("a")
+      parse(
+        //language=JSON5
+        """{ a: "\n\r\u000c\b\t\v\0\u12Fa\x7F" }"""
+      ).getString("a")
     )
   }
 
@@ -94,14 +132,17 @@ internal class UnitTests {
   fun testMemberName() {
     // note: requires UTF-8
     assertTrue(
-      parse("{ \$Lorem\\u0041_Ipsum123指事字: 0 }")
+      parse(
+        //language=JSON5
+        "{ \$Lorem\\u0041_Ipsum123指事字: 0 }"
+      )
         .has("\$LoremA_Ipsum123指事字")
     )
   }
 
   @ParameterizedTest
   @ValueSource(
-//language=JSON5
+    //language=JSON5
     strings = [
       """
         // test
