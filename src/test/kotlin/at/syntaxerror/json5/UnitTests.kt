@@ -24,9 +24,12 @@
 package at.syntaxerror.json5
 
 import java.time.Instant
+import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 
 /**
  * @author SyntaxError404
@@ -96,19 +99,33 @@ internal class UnitTests {
     )
   }
 
-  @Test
-  fun testMultiComments() {
-    assertTrue(
-      parse("/**/{/**/a/**/:/**/'b'/**/}/**/")
-        .has("a")
-    )
-  }
+  @ParameterizedTest
+  @ValueSource(
+//language=JSON5
+    strings = [
+      """
+        // test
+        { // lorem ipsum
+          a: 'b'
+        // test
+        }// test
+      """,
+      """
+        /**/{
+          /**/ a /**/: /**/'b'
+          /**/
+        }/**/
+      """,
+    ]
+  )
+  fun testComments(inputJson: String) {
 
-  @Test
-  fun testSingleComments() {
-    assertTrue(
-      parse("// test\n{ // lorem ipsum\n a: 'b'\n// test\n}// test")
-        .has("a")
+    val parsedValue = parse(inputJson)
+
+    assertAll(
+      { assertTrue(parsedValue.has("a")) },
+      { assertTrue(parsedValue.isString("a")) },
+      { assertEquals("b", parsedValue.getString("a")) },
     )
   }
 
