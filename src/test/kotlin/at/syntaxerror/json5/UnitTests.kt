@@ -24,12 +24,25 @@
 package at.syntaxerror.json5
 
 import java.time.Instant
+import java.util.stream.Stream
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
+import kotlinx.serialization.json.putJsonObject
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.DynamicTest
+import org.junit.jupiter.api.DynamicTest.dynamicTest
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 import org.junit.jupiter.params.provider.ValueSource
 
 /**
@@ -37,56 +50,52 @@ import org.junit.jupiter.params.provider.ValueSource
  */
 internal class UnitTests {
 
-  @Test
-  fun testDoubleQuoted() {
-    assertEquals(
-      "Test \" 123",
-
-      parse(
-        //language=JSON5
-        """{ a: "Test \" 123" }"""
-      ).getString("a")
-    )
+  private val j5 = Json5Module {
+    parseInstants = false
   }
 
-  @Test
-  fun testSingleQuoted() {
-    assertEquals(
-      "Test ' 123",
-      parse(
-        //language=JSON5
-        """{ a: 'Test \' 123' }"""
-      ).getString("a")
-    )
-  }
+  @ParameterizedTest(name = "{index}: {0}")
+  @CsvSource(
+    useHeadersInDisplayName = true,
+    delimiter = '|',
+    quoteCharacter = Char.MIN_VALUE, // prevent JUnit from interfering with our quotes
+    textBlock =
+    """
+Title                                 |  Input value    |  Expected value
+#-------------------------------------|-----------------|-----------------
+double quote in double-quoted string  |  "Test \" 123"  |  Test " 123 
+double quote in single-quoted string  |  'Test \" 123'  |  Test " 123 
+single quote in double-quoted string  |  "Test \' 123"  |  Test ' 123 
+single quote in single-quoted string  |  'Test \' 123'  |  Test ' 123 
+"""
+  )
+  fun testDoubleQuoted(title: String, inputValue: String, expectedValue: String) {
+    assertTrue(title.isNotEmpty(), "dummy var - used for test name")
 
-  @Test
-  fun testMixedQuoted() {
-    assertEquals(
-      "Test ' 123",
-      parse(
-        //language=JSON5
-        """{ a: "Test \' 123" }"""
-      ).getString("a")
-    )
+    val parsedObject = j5.decodeObject("""{ a: $inputValue }""")
+
+    assertTrue(parsedObject.containsKey("a"))
+    assertEquals(expectedValue, parsedObject["a"]?.jsonPrimitive?.contentOrNull)
   }
 
   @Test
   fun testStringify() {
-    val testOptions = JSONOptions.defaultOptions
-    testOptions.stringifyUnixInstants = true
-    val json = DecodeJson5Object()
-    json["a"] = null
-    json["b"] = false
-    json["c"] = true
-    json["d"] = DecodeJson5Object()
-    json["e"] = DecodeJson5Array()
-    json["f"] = Double.NaN
-    json["g"] = 123e+45
-    json["h"] = (-123e45).toFloat()
-    json["i"] = 123L
-    json["j"] = "Lorem Ipsum"
-    json["k"] = Instant.ofEpochSecond(1639908193)
+    val testOptions = JSONOptions(stringifyUnixInstants = true)
+    val stringify = JSONStringify(testOptions)
+
+    val jsonObject = buildJsonObject {
+      put("a", null as String?)
+      put("b", false)
+      put("c", true)
+      putJsonObject("d") {}
+      putJsonArray("e") {}
+      put("f", Double.NaN)
+      put("g", 123e+45)
+      put("h", (-123e45).toFloat())
+      put("i", 123L)
+      put("j", "Lorem Ipsum")
+      put("k", Instant.ofEpochSecond(1639908193).toString())
+    }
 
     @Language("JSON5")
     val expected =
@@ -100,44 +109,70 @@ internal class UnitTests {
           "e": [
           ],
           "f": NaN,
-          "g": 1.23E+47,
+          "g": 1.23E47,
           "h": -Infinity,
           "i": 123,
           "j": "Lorem Ipsum",
-          "k": 1639908193
+          "k": "2021-12-19T10:03:13Z"
         }
       """.trimIndent()
-
+    // TODO set up Instant encode/decode
+    //      "k": 1639908193
     assertAll(
-      { assertEquals(expected, json.toString(2u)) },
+      { assertEquals(expected, stringify.encodeObject(jsonObject, 2u)) },
       {
-        val parsedValue = parse(json.toString(2u))
-        assertEquals(expected, parsedValue.toString(2u))
+        val parsedValue = j5.decodeObject(expected)
+        assertEquals(expected, stringify.encodeObject(parsedValue, 2u))
       },
     )
   }
 
+  @TestFactory
+  fun `test escaped characters`(): Stream<DynamicTest> {
+    return listOf(
+      """ \n     """ to '\n',
+      """ \r     """ to '\r',
+      """ \u000c """ to '\u000c',
+      """ \b     """ to '\b',
+      """ \t     """ to '\t',
+      """ \v     """ to '\u000B',
+      """ \0     """ to '\u0000',
+      """ \u12Fa """ to '\u12Fa',
+      """ \u007F """ to '\u007F',
+    )
+      .map { (input, expectedChar) -> input.trim() to expectedChar }
+      .map { (input, expectedChar) ->
+        dynamicTest("expect escaped char '$input is mapped to actual char value") {
+          val parsedValue = j5.decodeObject("""{ a: "$input" }""")
+          assertTrue(parsedValue.containsKey("a"))
+          assertEquals(expectedChar.toString(), parsedValue["a"]?.jsonPrimitive?.contentOrNull)
+        }
+      }.stream()
+  }
+
   @Test
   fun testEscapes() {
-    assertEquals(
-      "\n\r\u000c\b\t\u000B\u0000\u12Fa\u007F",
-      parse(
-        //language=JSON5
-        """{ a: "\n\r\u000c\b\t\v\0\u12Fa\x7F" }"""
-      ).getString("a")
-    )
+
+    val inputValue = """\n\r\u000c\b\t\v\0\u12Fa\x7F"""
+    val expectedValue = "\n\r\u000c\b\t\u000B\u0000\u12Fa\u007F"
+
+    val parsedValue = j5.decodeObject("""{ a: "$inputValue" }""")
+
+    assertTrue(parsedValue.containsKey("a"))
+    assertEquals(expectedValue, parsedValue["a"]?.jsonPrimitive?.contentOrNull)
   }
 
   @Test
   fun testMemberName() {
     // note: requires UTF-8
-    assertTrue(
-      parse(
-        //language=JSON5
-        "{ \$Lorem\\u0041_Ipsum123指事字: 0 }"
-      )
-        .has("\$LoremA_Ipsum123指事字")
-    )
+
+    val inputKey = "\$Lorem\\u0041_Ipsum123指事字"
+    val expectedKey = "\$LoremA_Ipsum123指事字"
+
+    val parsedValue = j5.decodeObject("{ $inputKey: 0 }")
+
+    assertTrue(parsedValue.containsKey(expectedKey))
+    assertEquals(0, parsedValue[expectedKey]?.jsonPrimitive?.longOrNull)
   }
 
   @ParameterizedTest
@@ -160,63 +195,68 @@ internal class UnitTests {
     ]
   )
   fun testComments(inputJson: String) {
+    val parsedValue = j5.decodeObject(inputJson)
 
-    val parsedValue = parse(inputJson)
-
-    assertAll(
-      { assertTrue(parsedValue.has("a")) },
-      { assertTrue(parsedValue.isString("a")) },
-      { assertEquals("b", parsedValue.getString("a")) },
-    )
+    assertTrue(parsedValue.containsKey("a"))
+    assertEquals("b", parsedValue["a"]?.jsonPrimitive?.contentOrNull)
   }
 
-  @Test
-  fun testInstant() {
-
-    JSONOptions.defaultOptions.parseInstants = true
-
-    assertTrue(
-      parse("{a:1338150759534}")
-        .isInstant("a")
-    )
-    assertEquals(
-      parse("{a:1338150759534}")
-        .getLong("a"),
-      1338150759534L
-    )
-    assertEquals(
-      parse("{a:'2001-09-09T01:46:40Z'}")
-        .getString("a"),
-      "2001-09-09T01:46:40Z"
-    )
-  }
+//  @Test
+//  fun testInstant() {
+//
+//    JSONOptions.defaultOptions.parseInstants = true
+//
+//    assertTrue(
+//      objectDecoder.decodeString("{a:1338150759534}")
+//        .isInstant("a")
+//    )
+//    assertEquals(
+//      objectDecoder.decodeString("{a:1338150759534}")
+//        .getLong("a"),
+//      1338150759534L
+//    )
+//    assertEquals(
+//      objectDecoder.decodeString("{a:'2001-09-09T01:46:40Z'}")
+//        .getString("a"),
+//      "2001-09-09T01:46:40Z"
+//    )
+//  }
 
   @Test
   fun testHex() {
-    assertEquals(
-      0xCAFEBABEL,
-      parse("{a: 0xCAFEBABE}")
-        .getLong("a")
-    )
+
+    val parsedObject = j5.decodeObject("""{ a: 0xCAFEBABE }""")
+
+    assertTrue(parsedObject.containsKey("a"))
+    val actualValue = parsedObject["a"]?.jsonPrimitive?.longOrNull
+    assertEquals(0xCAFEBABE, actualValue)
   }
 
-  @Test
-  fun testSpecial() {
+  @ParameterizedTest
+  @ValueSource(strings = ["NaN", "-NaN", "+NaN"])
+  fun `expect NaN value is parsed to NaN Double`(nanValue: String) {
+
+    val jsonString = """ { a: $nanValue } """
+    val parsedObject = j5.decodeObject(jsonString)
+
+    assertTrue(parsedObject.containsKey("a"))
     assertTrue(
-      parse("{a: +NaN}")
-        .getDouble("a")
-        .isNaN()
-
+      parsedObject["a"]?.jsonPrimitive?.doubleOrNull?.isNaN() == true
     )
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = ["Infinity", "-Infinity", "+Infinity"])
+  fun `expect Infinity value is parsed to Infinite Double`(nanValue: String) {
+
+    val jsonString = """ { a: $nanValue } """
+    val parsedObject = j5.decodeObject(jsonString)
+
+    assertTrue(parsedObject.containsKey("a"))
     assertTrue(
-      parse("{a: -Infinity}")
-        .getDouble("a")
-        .isInfinite()
+      parsedObject["a"]?.jsonPrimitive?.doubleOrNull?.isInfinite() == true
     )
   }
 
-  private fun parse(str: String): DecodeJson5Object {
-    return DecodeJson5Object(JSONParser(str))
-  }
 
 }

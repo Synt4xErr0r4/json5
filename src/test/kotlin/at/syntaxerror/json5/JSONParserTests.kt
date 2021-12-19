@@ -6,6 +6,7 @@ import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.collections.shouldContainInOrder
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.comparables.shouldBeEqualComparingTo
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldMatch
 import io.kotest.matchers.types.shouldBeInstanceOf
@@ -16,6 +17,10 @@ import io.kotest.property.arbitrary.positiveLong
 import io.kotest.property.checkAll
 import io.kotest.property.exhaustive.collection
 import java.math.BigInteger
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
 import org.intellij.lang.annotations.Language
 
 class JSONParserTests : BehaviorSpec({
@@ -34,14 +39,14 @@ class JSONParserTests : BehaviorSpec({
                 """.trimIndent()
     When("JSONParser parses the array as a stream") {
 
-      val parser = JSONParser(valid.byteInputStream(), testOptions)
+      val parser = JSONParser(valid.reader(), testOptions)
       val parsedValue = parser.nextValue()
 
       Then("expect the value is a JSON Array") {
         assertSoftly(parsedValue) {
-          shouldBeInstanceOf<DecodeJson5Array>()
+          shouldBeInstanceOf<JsonArray>()
           shouldHaveSize(2)
-          shouldContainInOrder("I'm a string", BigInteger.valueOf(10))
+          shouldContainInOrder(JsonPrimitive("I'm a string"), JsonPrimitive(10))
         }
       }
       Then("expect there are no more values") {
@@ -70,8 +75,7 @@ class JSONParserTests : BehaviorSpec({
           val expected = BigInteger.valueOf(long).run {
             if (sign == "-") negate() else abs()
           }
-
-          expected to (sign + prefix + hex)
+          expected.longValueExact() to (sign + prefix + hex)
         }
 
         checkAll(arbHex) { (expectedNumber, hexString) ->
@@ -79,15 +83,19 @@ class JSONParserTests : BehaviorSpec({
 
           val json5Array = """ [ $hexString ] """
 
-          val parser = JSONParser(json5Array, testOptions)
+          val parser = JSONParser(json5Array.reader(), testOptions)
           val parsedValue = parser.nextValue()
 
           assertSoftly(parsedValue) {
-            shouldBeInstanceOf<DecodeJson5Array>()
+            shouldBeInstanceOf<JsonArray>()
             shouldHaveSize(1)
             val parsedHex = elementAt(0)
-            parsedHex.shouldBeInstanceOf<BigInteger>()
-            parsedHex shouldBeEqualComparingTo expectedNumber
+            parsedHex.shouldBeInstanceOf<JsonPrimitive>()
+            assertSoftly(parsedHex.jsonPrimitive.longOrNull) {
+              shouldNotBeNull()
+              shouldBeEqualComparingTo(expectedNumber)
+            }
+
           }
         }
       }

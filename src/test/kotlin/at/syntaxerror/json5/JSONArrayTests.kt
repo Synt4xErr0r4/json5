@@ -13,13 +13,13 @@ import io.kotest.property.arbitrary.Codepoint
 import io.kotest.property.arbitrary.codepoints
 import io.kotest.property.arbitrary.filter
 import io.kotest.property.checkAll
-import java.math.BigInteger
+import kotlinx.serialization.json.JsonPrimitive
 
 class JSONArrayTests : BehaviorSpec({
 
-  val testOptions = JSONOptions(
+  val j5 = Json5Module {
     parseInstants = false
-  )
+  }
 
   Given("a JSON5 array should start with '['") {
     val validArrayStarter = '['
@@ -34,17 +34,18 @@ class JSONArrayTests : BehaviorSpec({
                       ]
                     """.trimIndent()
 
-        val result = DecodeJson5Array(valid, testOptions)
+        val result = j5.decodeArray(valid)
 
         Then("expect the array can be pretty-printed") {
-          //language=JSON5
-          result.toString(2u) shouldBe
+          val pretty = j5.encodeToString(result)
+          pretty shouldBe
+              //language=JSON5
               """
-              [
-                "I'm a string",
-                10
-              ]
-            """.trimIndent()
+                [
+                  "I'm a string",
+                  10
+                ]
+              """.trimIndent()
         }
         Then("expect the array can be compact-printed") {
           //language=JSON5
@@ -52,10 +53,10 @@ class JSONArrayTests : BehaviorSpec({
         }
         Then("expect the array matches an equivalent List") {
 
-          assertSoftly(result.toList()) {
-            withClue(joinToString { it?.javaClass?.simpleName ?: "null" }) {
+          assertSoftly(result) {
+            withClue(joinToString { it.javaClass.simpleName }) {
               shouldHaveSize(2)
-              shouldContainInOrder("I'm a string", BigInteger.valueOf(10))
+              shouldContainInOrder(JsonPrimitive("I'm a string"), JsonPrimitive(10))
             }
           }
         }
@@ -77,7 +78,7 @@ class JSONArrayTests : BehaviorSpec({
                         """.trimIndent()
 
             val thrown = shouldThrow<JSONException.SyntaxError> {
-              DecodeJson5Array(invalid, testOptions)
+              j5.decodeArray(invalid)
             }
 
             assertSoftly(thrown.message) {

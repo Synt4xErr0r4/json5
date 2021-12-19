@@ -23,9 +23,9 @@
  */
 package at.syntaxerror.json5
 
-import at.syntaxerror.json5.UnicodeCharacter.FormFeed
-import at.syntaxerror.json5.UnicodeCharacter.VerticalTab
 import java.time.Instant
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
 
 /**
  * A utility class for serializing [JSONObjects][DecodeJson5Object] and [JSONArrays][DecodeJson5Array]
@@ -65,7 +65,7 @@ class JSONStringify(
    * ```
    */
   fun encodeObject(
-    jsonObject: DecodeJson5Object,
+    jsonObject: JsonObject,
     indentFactor: UInt,
     indent: String = "",
   ): String {
@@ -117,7 +117,7 @@ class JSONStringify(
    * ```
    */
   fun encodeArray(
-    array: DecodeJson5Array,
+    array: JsonArray,
     indentFactor: UInt,
     indent: String = "",
   ): String {
@@ -148,10 +148,10 @@ class JSONStringify(
     indentFactor: UInt,
   ): String {
     return when (value) {
-      null                 -> "null"
-      is DecodeJson5Object -> encodeObject(value, indentFactor, indent)
-      is DecodeJson5Array  -> encodeArray(value, indentFactor, indent)
-      is String            -> encodeString(value)
+      null          -> "null"
+      is JsonObject -> encodeObject(value, indentFactor, indent)
+      is JsonArray  -> encodeArray(value, indentFactor, indent)
+      is String     -> encodeString(value)
       is Instant    -> {
         if (options.stringifyUnixInstants) {
           value.epochSecond.toString()
@@ -179,16 +179,11 @@ class JSONStringify(
           prefix = quoteToken.toString(),
           postfix = quoteToken.toString()
         ) { c: Char ->
-          when (c) {
-            quoteToken       -> "\\$c"
-            '\\'             -> "\\\\"
-            '\b'             -> "\\b"
-            FormFeed.char    -> FormFeed.representation
-            '\n'             -> "\\n"
-            '\r'             -> "\\r"
-            '\t'             -> "\\t"
-            VerticalTab.char -> VerticalTab.representation
-            else             -> when (c.category) {
+
+          val formattedChar: String? = when (c) {
+            quoteToken                            -> "\\$quoteToken"
+            in Json5EscapeSequence.escapableChars -> Json5EscapeSequence.asEscapedString(c)
+            else                                  -> when (c.category) {
               CharCategory.FORMAT,
               CharCategory.LINE_SEPARATOR,
               CharCategory.PARAGRAPH_SEPARATOR,
@@ -196,9 +191,10 @@ class JSONStringify(
               CharCategory.PRIVATE_USE,
               CharCategory.SURROGATE,
               CharCategory.UNASSIGNED -> String.format("\\u%04X", c)
-              else                    -> c.toString()
+              else                    -> null
             }
           }
+          formattedChar ?: c.toString()
         }
     }
   }

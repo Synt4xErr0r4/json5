@@ -25,15 +25,10 @@ package at.syntaxerror.json5
 
 import at.syntaxerror.json5.JSONException.SyntaxError
 import java.io.BufferedReader
-import java.io.InputStream
-import java.io.InputStreamReader
 import java.io.Reader
-import java.io.StringReader
-import java.math.BigDecimal
-import java.math.BigInteger
-import java.time.DateTimeException
-import java.time.Instant
-import java.time.format.DateTimeParseException
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonPrimitive
 
 /**
  * A JSONParser is used to convert a source string into tokens, which then are used to construct
@@ -47,6 +42,7 @@ class JSONParser(
   reader: Reader,
   private val options: JSONOptions = JSONOptions.defaultOptions
 ) {
+
   private val reader: Reader = if (reader.markSupported()) reader else BufferedReader(reader)
   /** whether the end of the file has been reached */
   private var eof: Boolean = false
@@ -64,17 +60,6 @@ class JSONParser(
   private var current: Char = Char.MIN_VALUE
 
   private val nextCleanToDelimiters: String = ",]}"
-
-  constructor(source: String, options: JSONOptions = JSONOptions.defaultOptions)
-      : this(StringReader(source), options)
-
-  /**
-   * Constructs a new JSONParser from an InputStream.
-   *
-   * The stream is not [closed][InputStream.close].
-   */
-  constructor(stream: InputStream, options: JSONOptions = JSONOptions.defaultOptions)
-      : this(InputStreamReader(stream), options)
 
   private fun more(): Boolean {
     return if (back || eof) {
@@ -139,7 +124,7 @@ class JSONParser(
   // https://spec.json5.org/#white-space
   private fun isWhitespace(c: Char): Boolean {
     return when (c) {
-      '\t', '\n', '\u000B', UnicodeCharacter.FormFeed.char,
+      '\t', '\n', '\u000B', Json5EscapeSequence.FormFeed.char,
       '\r', ' ', '\u00A0', '\u2028', '\u2029', '\uFEFF' -> true
       else                                              ->
         // Unicode category "Zs" (space separators)
@@ -296,7 +281,7 @@ class JSONParser(
               continue
             }
             'f'             -> {
-              result.append(UnicodeCharacter.FormFeed.char)
+              result.append(Json5EscapeSequence.FormFeed.char)
               continue
             }
             'n'             -> {
@@ -418,101 +403,49 @@ class JSONParser(
    * Reads a value from the source according to the
    * [JSON5 Specification](https://spec.json5.org/#prod-JSON5Value)
    */
-  fun nextValue(): Any? {
+  fun nextValue(): JsonElement {
     when (val n = nextClean()) {
       '"', '\'' -> {
         val string = nextString(n)
-        return if (options.parseInstants && options.parseStringInstants) {
-          try {
-            Instant.parse(string)
-          } catch (e: DateTimeParseException) {
-            string
-          }
-        } else {
-          string
-        }
+        return JsonPrimitive(string)
       }
       '{'       -> {
         back()
-        return DecodeJson5Object(this)
+        return DecodeJson5Object.decode(this)
       }
       '['       -> {
         back()
-        return DecodeJson5Array(this)
+        return DecodeJson5Array.decode(this)
       }
     }
     back()
     val string = nextCleanTo()
-    when {
-      string == "null"                       -> {
-        return null
-      }
-      PATTERN_BOOLEAN.matches(string)        -> {
-        return string == "true"
-      }
-      PATTERN_NUMBER_INTEGER.matches(string) -> {
-        val bigint = BigInteger(string)
-        if (options.parseInstants && options.parseUnixInstants) {
-          return try {
-            val unix = bigint.longValueExact()
-            Instant.ofEpochSecond(unix)
-          } catch (e: DateTimeException) {
-            bigint
-          }
+    return when {
+      string == "null"                                 -> JsonNull
+      PATTERN_BOOLEAN.matches(string)                  -> JsonPrimitive(string == "true")
+
+      //        val bigint = BigInteger(string)
+      //        return bigint
+      PATTERN_NUMBER_INTEGER.matches(string)           -> JsonPrimitive(string.toLong())
+
+      PATTERN_NUMBER_FLOAT.matches(string)
+          || PATTERN_NUMBER_NON_FINITE.matches(string) -> {
+        try {
+          JsonPrimitive(string.toDouble())
+        } catch (e: NumberFormatException) {
+          throw createSyntaxException("could not parse number '$string'")
         }
-        return bigint
       }
-      PATTERN_NUMBER_FLOAT.matches(string)   -> {
-        return BigDecimal(string)
-      }
-      PATTERN_NUMBER_SPECIAL.matches(string) -> {
-        val special: String
-        val factor: Int
-        var d = 0.0
-        when (string[0]) {
-          '+'  -> {
-            special = string.substring(1) // +
-            factor = 1
-          }
-          '-'  -> {
-            special = string.substring(1) // -
-            factor = -1
-          }
-          else -> {
-            special = string
-            factor = 1
-          }
-        }
-        when (special) {
-          "NaN"      -> {
-            if (!options.allowNaN) {
-              throw createSyntaxException("NaN is not allowed")
-            }
-            d = Double.NaN
-          }
-          "Infinity" -> {
-            if (!options.allowInfinity) {
-              throw createSyntaxException("Infinity is not allowed")
-            }
-            d = Double.POSITIVE_INFINITY
-          }
-        }
-        return factor * d
-      }
-      PATTERN_NUMBER_HEX.matches(string)     -> {
+      PATTERN_NUMBER_HEX.matches(string)               -> {
         val hex = string.uppercase().split("0X").joinToString("")
-        return BigInteger(hex, 16)
+        JsonPrimitive(hex.toLong(16))
       }
-      else                                   -> throw JSONException("Illegal value '$string'")
+      else                                             -> throw JSONException("Illegal value '$string'")
     }
   }
 
-  fun createSyntaxException(message: String, cause: Throwable? = null): SyntaxError {
-    return SyntaxError(
-      "$message, at index $index, character $character, line $line]",
-      cause
-    )
-  }
+  fun createSyntaxException(message: String, cause: Throwable? = null): SyntaxError =
+    SyntaxError("$message, at index $index, character $character, line $line]", cause)
 
   companion object {
     private val PATTERN_BOOLEAN =
@@ -523,7 +456,7 @@ class JSONParser(
       Regex("[+-]?(0|[1-9]\\d*)")
     private val PATTERN_NUMBER_HEX =
       Regex("[+-]?0[xX][0-9a-fA-F]+")
-    private val PATTERN_NUMBER_SPECIAL =
+    private val PATTERN_NUMBER_NON_FINITE =
       Regex("[+-]?(Infinity|NaN)")
   }
 }
