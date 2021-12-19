@@ -21,145 +21,114 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package at.syntaxerror.json5;
-
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+package at.syntaxerror.json5
 
 /**
  * A JSONArray is an array structure capable of holding multiple values, including other JSONArrays
- * and {@link JSONObject JSONObjects}
+ * and [JSONObjects][JSONObject]
  *
  * @author SyntaxError404
  */
-public class JSONArray implements Iterable<Object> {
-
-  private final List<Object> values;
-
+class JSONArray() : Iterable<Any?> {
+  private val values: MutableList<Any>
   /**
    * Constructs a new JSONArray
    */
-  public JSONArray() {
-    values = new ArrayList<>();
+  init {
+    values = ArrayList()
   }
-
   /**
    * Constructs a new JSONArray from a string
    */
-  public JSONArray(String source) {
-    this(new JSONParser(source));
-  }
-
+  constructor(source: String?) : this(JSONParser(source)) {}
   /**
    * Constructs a new JSONArray from a JSONParser
    */
-  public JSONArray(JSONParser parser) {
-    this();
-
-    char c;
-
+  constructor(parser: JSONParser) : this() {
+    var c: Char
     if (parser.nextClean() != '[') {
-      throw parser.syntaxError("A JSONArray must begin with '['");
+      throw parser.syntaxError("A JSONArray must begin with '['")
     }
-
     while (true) {
-      c = parser.nextClean();
-
-      switch (c) {
-        case 0:
-          throw parser.syntaxError("A JSONArray must end with ']'");
-        case ']':
-          return;
-        default:
-          parser.back();
+      c = parser.nextClean()
+      when (c) {
+        0    -> throw parser.syntaxError("A JSONArray must end with ']'")
+        ']'  -> return
+        else -> parser.back()
       }
-
-      Object value = parser.nextValue();
-
-      values.add(value);
-
-      c = parser.nextClean();
-
+      val value = parser.nextValue()
+      values.add(value)
+      c = parser.nextClean()
       if (c == ']') {
-        return;
+        return
       }
-
       if (c != ',') {
-        throw parser.syntaxError("Expected ',' or ']' after value, got '" + c + "' instead");
+        throw parser.syntaxError("Expected ',' or ']' after value, got '$c' instead")
       }
     }
   }
-
   /**
    * Converts the JSONArray into a list. All JSONObjects and JSONArrays contained within this
    * JSONArray will be converted into their Map or List form as well
    */
-  public List<Object> toList() {
-    List<Object> list = new ArrayList<>();
-
-    for (Object value : this) {
-      if (value instanceof JSONObject) {
-        value = ((JSONObject) value).toMap();
-      } else if (value instanceof JSONArray) {
-        value = ((JSONArray) value).toList();
+  fun toList(): List<Any> {
+    val list: MutableList<Any> = ArrayList()
+    for (value in this) {
+      if (value is JSONObject) {
+        value = value.toMap()
+      } else if (value is JSONArray) {
+        value = value.toList()
       }
-
-      list.add(value);
+      list.add(value)
     }
-
-    return list;
+    return list
   }
 
-  @Override
-  public Iterator<Object> iterator() {
-    return values.iterator();
+  override fun iterator(): Iterator<Any> {
+    return values.iterator()
   }
-
   /**
    * Returns the number of values in the JSONArray
    */
-  public int length() {
-    return values.size();
+  fun length(): Int {
+    return values.size
   }
-
   /**
    * Converts the JSONArray into its string representation. The indentation factor enables
    * pretty-printing and defines how many spaces (' ') should be placed before each value. A factor
-   * of {@code < 1} disables pretty-printing and discards any optional whitespace characters.
-   * <p>
-   * {@code indentFactor = 2}:
+   * of `< 1` disables pretty-printing and discards any optional whitespace characters.
+   *
+   *
+   * `indentFactor = 2`:
    * <pre>
    * [
-   *   "value",
-   *   {
-   *     "nested": 123
-   *   },
-   *   false
+   * "value",
+   * {
+   * "nested": 123
+   * },
+   * false
    * ]
-   * </pre>
-   * <p>
-   * {@code indentFactor = 0}:
+  </pre> *
+   *
+   *
+   * `indentFactor = 0`:
    * <pre>
    * ["value",{"nested":123},false]
-   * </pre>
+  </pre> *
    *
    * @param indentFactor the indentation factor
    * @return the string representation
-   * @see JSONStringify#toString(JSONArray, int)
+   * @see JSONStringify.toString
    */
-  public String toString(int indentFactor) {
-    return JSONStringify.toString(this, indentFactor);
+  fun toString(indentFactor: Int): String {
+    return JSONStringify.toString(this, indentFactor)
   }
-
   /**
    * Converts the JSONArray into its compact string representation.
    *
    * @return the compact string representation
    */
-  @Override
-  public String toString() {
-    return toString(0);
+  override fun toString(): String {
+    return toString(0)
   }
-
 }

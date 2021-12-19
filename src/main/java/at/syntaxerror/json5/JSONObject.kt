@@ -21,149 +21,112 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package at.syntaxerror.json5;
+package at.syntaxerror.json5
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.time.Instant;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.function.Predicate;
+import java.math.BigDecimal
+import java.math.BigInteger
+import java.time.Instant
+import java.util.function.Predicate
 
 /**
  * A JSONObject is a map (key-value) structure capable of holding multiple values, including other
- * {@link JSONArray JSONArrays} and JSONObjects
+ * [JSONArrays][JSONArray] and JSONObjects
  *
  * @author SyntaxError404
  */
-public class JSONObject implements Iterable<Map.Entry<String, Object>> {
+class JSONObject() : Iterable<Map.Entry<String?, Any?>?> {
+  private val values: MutableMap<String, Any?> = HashMap()
 
-  private final Map<String, Object> values;
 
-  public JSONObject() {
-    values = new HashMap<>();
-  }
-
-  public JSONObject(String source) {
-    this(new JSONParser(source));
-  }
-
-  public JSONObject(JSONParser parser) {
-    this();
-
-    char c;
-    String key;
-
+  constructor(source: String?) : this(JSONParser(source))
+  constructor(parser: JSONParser) : this() {
+    var c: Char
+    var key: String
     if (parser.nextClean() != '{') {
-      throw parser.syntaxError("A JSONObject must begin with '{'");
+      throw parser.syntaxError("A JSONObject must begin with '{'")
     }
-
     while (true) {
-      c = parser.nextClean();
-
-      switch (c) {
-        case 0:
-          throw parser.syntaxError("A JSONObject must end with '}'");
-        case '}':
-          return;
-        default:
-          parser.back();
-          key = parser.nextMemberName();
+      c = parser.nextClean()
+      key = when (c) {
+        0    -> throw parser.syntaxError("A JSONObject must end with '}'")
+        '}'  -> return
+        else -> {
+          parser.back()
+          parser.nextMemberName()
+        }
       }
-
       if (has(key)) {
-        throw new JSONException("Duplicate key " + JSONStringify.quote(key));
+        throw JSONException("Duplicate key " + JSONStringify.quote(key))
       }
-
-      c = parser.nextClean();
-
+      c = parser.nextClean()
       if (c != ':') {
-        throw parser.syntaxError("Expected ':' after a key, got '" + c + "' instead");
+        throw parser.syntaxError("Expected ':' after a key, got '$c' instead")
       }
-
-      Object value = parser.nextValue();
-
-      values.put(key, value);
-
-      c = parser.nextClean();
-
+      val value = parser.nextValue()
+      values[key] = value
+      c = parser.nextClean()
       if (c == '}') {
-        return;
+        return
       }
-
       if (c != ',') {
-        throw parser.syntaxError("Expected ',' or '}' after value, got '" + c + "' instead");
+        throw parser.syntaxError("Expected ',' or '}' after value, got '$c' instead")
       }
     }
   }
-
   /**
    * Converts the JSONObject into a map. All JSONObjects and JSONArrays contained within this
    * JSONObject will be converted into their Map or List form as well
    */
-  public Map<String, Object> toMap() {
-    Map<String, Object> map = new HashMap<>();
-
-    for (Entry<String, Object> entry : this) {
-      Object value = entry.getValue();
-
-      if (value instanceof JSONObject) {
-        value = ((JSONObject) value).toMap();
-      } else if (value instanceof JSONArray) {
-        value = ((JSONArray) value).toList();
+  fun toMap(): Map<String, Any> {
+    val map: MutableMap<String, Any> = HashMap()
+    for (entry in this) {
+      var value = entry.value
+      if (value is JSONObject) {
+        value = value.toMap()
+      } else if (value is JSONArray) {
+        value = value.toList()
       }
-
-      map.put(entry.getKey(), value);
+      map[entry.key] = value
     }
-
-    return map;
+    return map
   }
 
-  @Override
-  public Iterator<Entry<String, Object>> iterator() {
-    return values.entrySet().iterator();
+  override fun iterator(): Iterator<Map.Entry<String, Any?>> {
+    return values.entries.iterator()
   }
-
   /**
    * Checks if a key exists within the JSONObject
    */
-  public boolean has(String key) {
-    return values.containsKey(key);
+  fun has(key: String): Boolean {
+    return values.containsKey(key)
   }
-
   /**
    * Checks if the value with the specified key is a string
    *
    * @throws JSONException if the key does not exist
    */
-  public boolean isString(String key) {
-    Object value = checkKey(key);
-    return value instanceof String || value instanceof Instant;
+  fun isString(key: String): Boolean {
+    val value = checkKey(key)
+    return value is String || value is Instant
   }
-
   /**
    * Checks if the value with the specified key is a number
    *
    * @throws JSONException if the key does not exist
    */
-  public boolean isNumber(String key) {
-    Object value = checkKey(key);
-    return value instanceof Number || value instanceof Instant;
+  fun isNumber(key: String): Boolean {
+    val value = checkKey(key)
+    return value is Number || value is Instant
   }
-
   /**
    * Checks if the value with the specified key is an Instant
    * @throws JSONException if the key does not exist
    * @since 1.1.0
    */
-  public boolean isInstant(String key) {
-    return checkKey(key) instanceof Instant;
+  fun isInstant(key: String): Boolean {
+    return checkKey(key) is Instant
   }
-
   // -- GET --
-
   /**
    * Returns the value as a string for a given key
    *
@@ -171,14 +134,15 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
    * @return the string
    * @throws JSONException if the key does not exist, or if the value is not a string
    */
-  public String getString(String key) {
-    if (isInstant(key)) {
-      return getInstant(key).toString();
-    }
-
-    return checkType(this::isString, key, "string");
+  fun getString(key: String): String {
+    return if (isInstant(key)) {
+      getInstant(key).toString()
+    } else checkType<String>({ key: String ->
+      isString(
+        key
+      )
+    }, key, "string")!!
   }
-
   /**
    * Returns the value as a number for a given key
    *
@@ -186,21 +150,22 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
    * @return the number
    * @throws JSONException if the key does not exist, or if the value is not a number
    */
-  public Number getNumber(String key) {
-    if (isInstant(key)) {
-      return getInstant(key).getEpochSecond();
-    }
-
-    return checkType(this::isNumber, key, "number");
+  fun getNumber(key: String): Number {
+    return if (isInstant(key)) {
+      getInstant(key).epochSecond
+    } else checkType<Number>({ key: String ->
+      isNumber(
+        key
+      )
+    }, key, "number")!!
   }
-
   /**
    * Returns the value as a long for a given key
    *
    * @throws JSONException if the key does not exist, or if the value is not a long
    */
-  public long getLong(String key) {
-    return getNumber(key).longValue();
+  fun getLong(key: String): Long {
+    return getNumber(key).toLong()
   }
   /**
    * Returns the value as a double for a given key
@@ -210,19 +175,21 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
    *
    * @throws JSONException if the key does not exist, or if the value is not a double
    */
-  public double getDouble(String key) {
-    return getNumber(key).doubleValue();
+  fun getDouble(key: String): Double {
+    return getNumber(key).toDouble()
   }
-
   /**
    * Returns the value as an Instant for a given key
    *
    * @throws JSONException if the key does not exist, or if the value is not an Instant
    */
-  public Instant getInstant(String key) {
-    return checkType(this::isInstant, key, "instant");
+  fun getInstant(key: String): Instant {
+    return checkType<Instant>({ key: String ->
+      isInstant(
+        key
+      )
+    }, key, "instant")!!
   }
-
   /**
    * Sets the value at a given key
    *
@@ -230,124 +197,114 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
    * @param value the new value
    * @return this JSONObject
    */
-  public JSONObject set(String key, Object value) {
-    values.put(key, sanitize(value));
-    return this;
+  operator fun set(key: String, value: Any?): JSONObject {
+    values[key] = sanitize(value)
+    return this
   }
-
   // -- STRINGIFY --
-
   /**
    * Converts the JSONObject into its string representation. The indentation factor enables
    * pretty-printing and defines how many spaces (' ') should be placed before each key/value pair.
-   * A factor of {@code < 1} disables pretty-printing and discards any optional whitespace
+   * A factor of `< 1` disables pretty-printing and discards any optional whitespace
    * characters.
-   * <p>
-   * {@code indentFactor = 2}:
+   *
+   *
+   * `indentFactor = 2`:
    * <pre>
    * {
-   *   "key0": "value0",
-   *   "key1": {
-   *     "nested": 123
-   *   },
-   *   "key2": false
+   * "key0": "value0",
+   * "key1": {
+   * "nested": 123
+   * },
+   * "key2": false
    * }
-   * </pre>
-   * <p>
-   * {@code indentFactor = 0}:
+  </pre> *
+   *
+   *
+   * `indentFactor = 0`:
    * <pre>
    * {"key0":"value0","key1":{"nested":123},"key2":false}
-   * </pre>
+  </pre> *
    *
    * @param indentFactor the indentation factor
    * @return the string representation
-   * @see JSONStringify#toString(JSONObject, int)
+   * @see JSONStringify.toString
    */
-  public String toString(int indentFactor) {
-    return JSONStringify.toString(this, indentFactor);
+  fun toString(indentFactor: Int): String {
+    return JSONStringify.toString(this, indentFactor)
   }
-
   /**
    * Converts the JSONObject into its compact string representation.
    *
    * @return the compact string representation
    */
-  @Override
-  public String toString() {
-    return toString(0);
+  override fun toString(): String {
+    return toString(0)
   }
-
   // -- MISCELLANEOUS --
-
-  private Object checkKey(String key) {
+  private fun checkKey(key: String): Any? {
     if (!values.containsKey(key)) {
-      throw new JSONException("JSONObject[" + JSONStringify.quote(key) + "] does not exist");
+      throw JSONException("JSONObject[" + JSONStringify.quote(key) + "] does not exist")
     }
-
-    return values.get(key);
+    return values[key]
   }
 
-  @SuppressWarnings("unchecked")
-  private <T> T checkType(Predicate<String> predicate, String key, String type) {
+  private fun <T> checkType(predicate: Predicate<String>, key: String, type: String): T? {
     if (!predicate.test(key)) {
-      throw mismatch(key, type);
+      throw mismatch(key, type)
     }
-
-    return (T) values.get(key);
+    return values[key] as T?
   }
 
-  private static JSONException mismatch(String key, String type) {
-    return new JSONException("JSONObject[" + JSONStringify.quote(key) + "] is not of type " + type);
-  }
-
-  /**
-   * Sanitizes an input value
-   *
-   * @throws JSONException if the value is illegal
-   */
-  static Object sanitize(Object value) {
-    if (value == null) {
-      return null;
+  companion object {
+    private fun mismatch(key: String, type: String): JSONException {
+      return JSONException("JSONObject[" + JSONStringify.quote(key) + "] is not of type " + type)
     }
-
-    if (value instanceof Boolean ||
-        value instanceof String ||
-        value instanceof JSONObject ||
-        value instanceof JSONArray ||
-        value instanceof Instant) {
-      return value;
-    } else if (value instanceof Number) {
-      Number num = (Number) value;
-
-      if (value instanceof Double) {
-        double d = (Double) num;
-
-        if (Double.isFinite(d)) {
-          return BigDecimal.valueOf(d);
-        }
-      } else if (value instanceof Float) {
-        float f = (Float) num;
-
-        if (Float.isFinite(f)) {
-          return BigDecimal.valueOf(f);
-        }
-
-        // NaN and Infinity
-        return num.doubleValue();
-      } else if (value instanceof Byte ||
-          value instanceof Short ||
-          value instanceof Integer ||
-          value instanceof Long) {
-        return BigInteger.valueOf(num.longValue());
-      } else if (!(value instanceof BigDecimal ||
-          value instanceof BigInteger)) {
-        return BigDecimal.valueOf(num.doubleValue());
+    /**
+     * Sanitizes an input value
+     *
+     * @throws JSONException if the value is illegal
+     */
+    fun sanitize(value: Any?): Any? {
+      if (value == null) {
+        return null
       }
+      return if (value is Boolean ||
+        value is String ||
+        value is JSONObject ||
+        value is JSONArray ||
+        value is Instant
+      ) {
+        value
+      } else if (value is Number) {
+        val num = value
+        if (value is Double) {
+          val d = num as Double
+          if (java.lang.Double.isFinite(d)) {
+            return BigDecimal.valueOf(d)
+          }
+        } else if (value is Float) {
+          val f = num as Float
+          return if (java.lang.Float.isFinite(f)) {
+            BigDecimal.valueOf(f.toDouble())
+          } else num.toDouble()
 
-      return num;
-    } else {
-      throw new JSONException("Illegal type '" + value.getClass() + "'");
+          // NaN and Infinity
+        } else if (value is Byte ||
+          value is Short ||
+          value is Int ||
+          value is Long
+        ) {
+          return BigInteger.valueOf(num.toLong())
+        } else if (!(value is BigDecimal ||
+              value is BigInteger)
+        ) {
+          return BigDecimal.valueOf(num.toDouble())
+        }
+        num
+      } else {
+        throw JSONException("Illegal type '" + value.javaClass + "'")
+      }
     }
   }
-
 }

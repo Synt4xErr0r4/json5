@@ -21,316 +21,262 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package at.syntaxerror.json5;
+package at.syntaxerror.json5
 
-import java.time.Instant;
-import java.util.Map;
+import java.time.Instant
 
 /**
- * A utility class for serializing {@link JSONObject JSONObjects} and {@link JSONArray JSONArrays}
+ * A utility class for serializing [JSONObjects][JSONObject] and [JSONArrays][JSONArray]
  * into their string representations
  *
  * @author SyntaxError404
  */
-public class JSONStringify {
-
-  private JSONStringify() {
-    throw new UnsupportedOperationException("Utility class");
+class JSONStringify private constructor() {
+  init {
+    throw UnsupportedOperationException("Utility class")
   }
 
-  /**
-   * Converts a JSONObject into its string representation. The indentation factor enables
-   * pretty-printing and defines how many spaces (' ') should be placed before each key/value pair.
-   * A factor of {@code < 1} disables pretty-printing and discards any optional whitespace
-   * characters.
-   * <p>
-   * {@code indentFactor = 2}:
-   * <pre>
-   * {
-   *   "key0": "value0",
-   *   "key1": {
-   *     "nested": 123
-   *   },
-   *   "key2": false
-   * }
-   * </pre>
-   * <p>
-   * {@code indentFactor = 0}:
-   * <pre>
-   * {"key0":"value0","key1":{"nested":123},"key2":false}
-   * </pre>
-   */
-  public static String toString(JSONObject object, int indentFactor, JSONOptions options) {
-    return toString(
-        object,
+  companion object {
+    /**
+     * Converts a JSONObject into its string representation. The indentation factor enables
+     * pretty-printing and defines how many spaces (' ') should be placed before each key/value pair.
+     * A factor of `< 1` disables pretty-printing and discards any optional whitespace
+     * characters.
+     *
+     *
+     * `indentFactor = 2`:
+     * <pre>
+     * {
+     * "key0": "value0",
+     * "key1": {
+     * "nested": 123
+     * },
+     * "key2": false
+     * }
+    </pre> *
+     *
+     *
+     * `indentFactor = 0`:
+     * <pre>
+     * {"key0":"value0","key1":{"nested":123},"key2":false}
+    </pre> *
+     */
+    /**
+     * Converts a JSONObject into its string representation. The indentation factor enables
+     * pretty-printing and defines how many spaces (' ') should be placed before each key/value pair.
+     * A factor of `< 1` disables pretty-printing and discards any optional whitespace
+     * characters.
+     *
+     *
+     * `indentFactor = 2`:
+     * <pre>
+     * {
+     * "key0": "value0",
+     * "key1": {
+     * "nested": 123
+     * },
+     * "key2": false
+     * }
+    </pre> *
+     *
+     *
+     * `indentFactor = 0`:
+     * <pre>
+     * {"key0":"value0","key1":{"nested":123},"key2":false}
+    </pre> *
+     * This uses the [default options][JSONOptions.defaultOptions]
+     */
+    @JvmOverloads
+    fun toString(`object`: JSONObject, indentFactor: Int, options: JSONOptions? = null): String {
+      return toString(
+        `object`,
         "",
         Math.max(0, indentFactor),
-        options == null ? JSONOptions.defaultOptions : options
-    );
-  }
-
-  /**
-   * Converts a JSONArray into its string representation. The indentation factor enables
-   * pretty-printing and defines how many spaces (' ') should be placed before each value. A factor
-   * of {@code < 1} disables pretty-printing and discards any optional whitespace characters.
-   * <p>
-   * {@code indentFactor = 2}:
-   * <pre>
-   * [
-   *   "value",
-   *   {
-   *     "nested": 123
-   *   },
-   *   false
-   * ]
-   * </pre>
-   * <p>
-   * {@code indentFactor = 0}:
-   * <pre>
-   * ["value",{"nested":123},false]
-   * </pre>
-   */
-  public static String toString(JSONArray array, int indentFactor, JSONOptions options) {
-    return toString(
+        options ?: JSONOptions.defaultOptions
+      )
+    }
+    /**
+     * Converts a JSONArray into its string representation. The indentation factor enables
+     * pretty-printing and defines how many spaces (' ') should be placed before each value. A factor
+     * of `< 1` disables pretty-printing and discards any optional whitespace characters.
+     *
+     *
+     * `indentFactor = 2`:
+     * <pre>
+     * [
+     * "value",
+     * {
+     * "nested": 123
+     * },
+     * false
+     * ]
+    </pre> *
+     *
+     *
+     * `indentFactor = 0`:
+     * <pre>
+     * ["value",{"nested":123},false]
+    </pre> *
+     */
+    /**
+     * Converts a JSONArray into its string representation. The indentation factor enables
+     * pretty-printing and defines how many spaces (' ') should be placed before each value. A factor
+     * of `< 1` disables pretty-printing and discards any optional whitespace characters.
+     *
+     *
+     * `indentFactor = 2`:
+     * <pre>
+     * [
+     * "value",
+     * {
+     * "nested": 123
+     * },
+     * false
+     * ]
+    </pre> *
+     *
+     *
+     * `indentFactor = 0`:
+     * <pre>
+     * ["value",{"nested":123},false]
+    </pre> *
+     * This uses the [default options][JSONOptions.defaultOptions]
+     */
+    @JvmOverloads
+    fun toString(array: JSONArray, indentFactor: Int, options: JSONOptions? = null): String {
+      return toString(
         array,
         "",
         Math.max(0, indentFactor),
-        options == null ?
-            JSONOptions.defaultOptions : options
-    );
-  }
+        options ?: JSONOptions.defaultOptions
+      )
+    }
 
-  /**
-   * Converts a JSONObject into its string representation. The indentation factor enables
-   * pretty-printing and defines how many spaces (' ') should be placed before each key/value pair.
-   * A factor of {@code < 1} disables pretty-printing and discards any optional whitespace
-   * characters.
-   * <p>
-   * {@code indentFactor = 2}:
-   * <pre>
-   * {
-   *   "key0": "value0",
-   *   "key1": {
-   *     "nested": 123
-   *   },
-   *   "key2": false
-   * }
-   * </pre>
-   * <p>
-   * {@code indentFactor = 0}:
-   * <pre>
-   * {"key0":"value0","key1":{"nested":123},"key2":false}
-   * </pre>
-   * This uses the {@link JSONOptions#defaultOptions default options}
-   */
-  public static String toString(JSONObject object, int indentFactor) {
-    return toString(object, indentFactor, null);
-  }
-
-  /**
-   * Converts a JSONArray into its string representation. The indentation factor enables
-   * pretty-printing and defines how many spaces (' ') should be placed before each value. A factor
-   * of {@code < 1} disables pretty-printing and discards any optional whitespace characters.
-   * <p>
-   * {@code indentFactor = 2}:
-   * <pre>
-   * [
-   *   "value",
-   *   {
-   *     "nested": 123
-   *   },
-   *   false
-   * ]
-   * </pre>
-   * <p>
-   * {@code indentFactor = 0}:
-   * <pre>
-   * ["value",{"nested":123},false]
-   * </pre>
-   * This uses the {@link JSONOptions#defaultOptions default options}
-   */
-  public static String toString(JSONArray array, int indentFactor) {
-    return toString(array, indentFactor, null);
-  }
-
-  private static String toString(JSONObject object, String indent, int indentFactor,
-      JSONOptions options) {
-    StringBuilder sb = new StringBuilder();
-
-    String childIndent = indent + " ".repeat(indentFactor);
-
-    sb.append('{');
-
-    for (Map.Entry<String, Object> entry : object) {
-      if (sb.length() != 1) {
-        sb.append(',');
+    private fun toString(
+      jsonObject: JSONObject, indent: String, indentFactor: Int,
+      options: JSONOptions
+    ): String {
+      val sb = StringBuilder()
+      val childIndent = indent + " ".repeat(indentFactor)
+      sb.append('{')
+      jsonObject.forEach { (key, value) ->
+        if (sb.length != 1) {
+          sb.append(',')
+        }
+        if (indentFactor > 0) {
+          sb.append('\n').append(childIndent)
+        }
+        sb.append(quote(key, options))
+          .append(':')
+        if (indentFactor > 0) {
+          sb.append(' ')
+        }
+        sb.append(toString(value, childIndent, indentFactor, options))
       }
-
       if (indentFactor > 0) {
-        sb.append('\n').append(childIndent);
+        sb.append('\n').append(indent)
       }
+      sb.append('}')
+      return sb.toString()
+    }
 
-      sb.append(quote(entry.getKey(), options))
-          .append(':');
-
+    private fun toString(
+      array: JSONArray, indent: String, indentFactor: Int,
+      options: JSONOptions
+    ): String {
+      val sb = StringBuilder()
+      val childIndent = indent + " ".repeat(indentFactor)
+      sb.append('[')
+      for (value in array) {
+        if (sb.length != 1) {
+          sb.append(',')
+        }
+        if (indentFactor > 0) {
+          sb.append('\n').append(childIndent)
+        }
+        sb.append(toString(value, childIndent, indentFactor, options))
+      }
       if (indentFactor > 0) {
-        sb.append(' ');
+        sb.append('\n').append(indent)
       }
-
-      sb.append(toString(entry.getValue(), childIndent, indentFactor, options));
+      sb.append(']')
+      return sb.toString()
     }
 
-    if (indentFactor > 0) {
-      sb.append('\n').append(indent);
-    }
-
-    sb.append('}');
-
-    return sb.toString();
-  }
-
-  private static String toString(JSONArray array, String indent, int indentFactor,
-      JSONOptions options) {
-    StringBuilder sb = new StringBuilder();
-
-    String childIndent = indent + " ".repeat(indentFactor);
-
-    sb.append('[');
-
-    for (Object value : array) {
-      if (sb.length() != 1) {
-        sb.append(',');
+    private fun toString(
+      value: Any?, indent: String, indentFactor: Int,
+      options: JSONOptions
+    ): String {
+      if (value == null) {
+        return "null"
       }
-
-      if (indentFactor > 0) {
-        sb.append('\n').append(childIndent);
+      if (value is JSONObject) {
+        return toString(value, indent, indentFactor, options)
       }
-
-      sb.append(toString(value, childIndent, indentFactor, options));
-    }
-
-    if (indentFactor > 0) {
-      sb.append('\n').append(indent);
-    }
-
-    sb.append(']');
-
-    return sb.toString();
-  }
-
-  private static String toString(Object value, String indent, int indentFactor,
-      JSONOptions options) {
-    if (value == null) {
-      return "null";
-    }
-
-    if (value instanceof JSONObject) {
-      return toString((JSONObject) value, indent, indentFactor, options);
-    }
-
-    if (value instanceof JSONArray) {
-      return toString((JSONArray) value, indent, indentFactor, options);
-    }
-
-    if (value instanceof String) {
-      return quote((String) value, options);
-    }
-
-    if (value instanceof Instant) {
-      Instant instant = (Instant) value;
-
-      if (options.stringifyUnixInstants) {
-        return String.valueOf(instant.getEpochSecond());
+      if (value is JSONArray) {
+        return toString(value, indent, indentFactor, options)
       }
-
-      return quote(instant.toString(), options);
+      if (value is String) {
+        return quote(value as String?, options)
+      }
+      if (value is Instant) {
+        val instant = value
+        return if (options.stringifyUnixInstants) {
+          instant.epochSecond.toString()
+        } else quote(instant.toString(), options)
+      }
+      if (value is Double) {
+        val d = value
+        if (!options.allowNaN && java.lang.Double.isNaN(d)) {
+          throw JSONException("Illegal NaN in JSON")
+        }
+        if (!options.allowInfinity && java.lang.Double.isInfinite(d)) {
+          throw JSONException("Illegal Infinity in JSON")
+        }
+      }
+      return value.toString()
     }
 
-    if (value instanceof Double) {
-      double d = (Double) value;
-
-      if (!options.allowNaN && Double.isNaN(d)) {
-        throw new JSONException("Illegal NaN in JSON");
-      }
-
-      if (!options.allowInfinity && Double.isInfinite(d)) {
-        throw new JSONException("Illegal Infinity in JSON");
-      }
+    fun quote(string: String?): String {
+      return quote(string, null)
     }
 
-    return String.valueOf(value);
-  }
-
-  static String quote(String string) {
-    return quote(string, null);
-  }
-
-  private static String quote(String string, JSONOptions options) {
-    options = options == null ?
-        JSONOptions.defaultOptions : options;
-
-    if (string == null || string.isEmpty()) {
-      return options.quoteSingle ? "''" : "\"\"";
-    }
-
-    final char qt = options.quoteSingle ? '\'' : '"';
-
-    StringBuilder quoted = new StringBuilder(string.length() + 2);
-
-    quoted.append(qt);
-
-    for (char c : string.toCharArray()) {
-      if (c == qt) {
-        quoted.append('\\');
-        quoted.append(c);
-        continue;
+    private fun quote(string: String?, options: JSONOptions?): String {
+      var options = options
+      options = options ?: JSONOptions.defaultOptions
+      if (string == null || string.isEmpty()) {
+        return if (options.quoteSingle) "''" else "\"\""
       }
-
-      switch (c) {
-        case '\\':
-          quoted.append("\\\\");
-          break;
-        case '\b':
-          quoted.append("\\b");
-          break;
-        case '\f':
-          quoted.append("\\f");
-          break;
-        case '\n':
-          quoted.append("\\n");
-          break;
-        case '\r':
-          quoted.append("\\r");
-          break;
-        case '\t':
-          quoted.append("\\t");
-          break;
-        case 0x0B: // Vertical Tab
-          quoted.append("\\v");
-          break;
-        default:
-          // escape non-graphical characters (https://www.unicode.org/versions/Unicode13.0.0/ch02.pdf#G286941)
-          switch (Character.getType(c)) {
-            case Character.FORMAT:
-            case Character.LINE_SEPARATOR:
-            case Character.PARAGRAPH_SEPARATOR:
-            case Character.CONTROL:
-            case Character.PRIVATE_USE:
-            case Character.SURROGATE:
-            case Character.UNASSIGNED:
-              quoted.append("\\u");
-              quoted.append(String.format("%04X", c));
-              break;
-            default:
-              quoted.append(c);
-              break;
+      val qt = if (options.quoteSingle) '\'' else '"'
+      val quoted = StringBuilder(string.length + 2)
+      quoted.append(qt)
+      for (c in string.toCharArray()) {
+        if (c == qt) {
+          quoted.append('\\')
+          quoted.append(c)
+          continue
+        }
+        when (c) {
+          '\\' -> quoted.append("\\\\")
+          '\b' -> quoted.append("\\b")
+          '\f' -> quoted.append("\\u000c")
+          '\n' -> quoted.append("\\n")
+          '\r' -> quoted.append("\\r")
+          '\t' -> quoted.append("\\t")
+          0x0B -> quoted.append("\\v")
+          else -> when (Character.getType(c)) {
+            Character.FORMAT, Character.LINE_SEPARATOR, Character.PARAGRAPH_SEPARATOR, Character.CONTROL, Character.PRIVATE_USE, Character.SURROGATE, Character.UNASSIGNED -> {
+              quoted.append("\\u")
+              quoted.append(String.format("%04X", c))
+            }
+            else                                                                                                                                                           -> quoted.append(
+              c
+            )
           }
+        }
       }
+      quoted.append(qt)
+      return quoted.toString()
     }
-
-    quoted.append(qt);
-
-    return quoted.toString();
   }
-
 }

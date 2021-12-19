@@ -21,103 +21,77 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package at.syntaxerror.json5;
+package at.syntaxerror.json5
 
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.StringReader;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.time.Instant;
-import java.util.regex.Pattern;
+import java.io.BufferedReader
+import java.io.InputStream
+import java.io.InputStreamReader
+import java.io.Reader
+import java.io.StringReader
+import java.math.BigDecimal
+import java.math.BigInteger
+import java.time.Instant
+import java.util.regex.Pattern
 
 /**
  * A JSONParser is used to convert a source string into tokens, which then are used to construct
- * {@link JSONObject JSONObjects} and {@link JSONArray JSONArrays}
+ * [JSONObjects][JSONObject] and [JSONArrays][JSONArray]
  *
  * @author SyntaxError404
  */
-public class JSONParser {
-
-  private static final Pattern PATTERN_BOOLEAN = Pattern.compile(
-      "true|false"
-  );
-
-  private static final Pattern PATTERN_NUMBER_FLOAT = Pattern.compile(
-      "[+-]?((0|[1-9]\\d*)(\\.\\d*)?|\\.\\d+)([eE][+-]?\\d+)?"
-  );
-  private static final Pattern PATTERN_NUMBER_INTEGER = Pattern.compile(
-      "[+-]?(0|[1-9]\\d*)"
-  );
-  private static final Pattern PATTERN_NUMBER_HEX = Pattern.compile(
-      "[+-]?0[xX][0-9a-fA-F]+"
-  );
-  private static final Pattern PATTERN_NUMBER_SPECIAL = Pattern.compile(
-      "[+-]?(Infinity|NaN)"
-  );
-
-  private final Reader reader;
-  private final JSONOptions options;
-
+class JSONParser @JvmOverloads constructor(reader: Reader, options: JSONOptions? = null) {
+  private val reader: Reader
+  private val options: JSONOptions
   /**
    * whether the end of the file has been reached
    */
-  private boolean eof;
-
+  private var eof: Boolean
   /**
    * whether the current character should be re-read
    */
-  private boolean back;
-
+  private var back: Boolean
   /**
    * the absolute position in the string
    */
-  private long index;
+  private var index: Long
   /**
    * the relative position in the line
    */
-  private long character;
+  private var character: Long
   /**
    * the line number
    */
-  private long line;
-
+  private var line: Long
   /**
    * the previous character
    */
-  private char previous;
+  private var previous: Char
   /**
    * the current character
    */
-  private char current;
-
+  private var current: Char
   /**
-   * Constructs a new JSONParser from a Reader. The reader is not {@link Reader#close() closed}
+   * Constructs a new JSONParser from a Reader. The reader is not [closed][Reader.close]
    *
    * @param reader  a reader
    * @param options the options for parsing
    * @since 1.1.0
    */
-  public JSONParser(Reader reader, JSONOptions options) {
-    this.reader = reader.markSupported() ?
-        reader : new BufferedReader(reader);
-
-    this.options = options == null ?
-        JSONOptions.defaultOptions : options;
-
-    eof = false;
-    back = false;
-
-    index = -1;
-    character = 0;
-    line = 1;
-
-    previous = 0;
-    current = 0;
+  /**
+   * Constructs a new JSONParser from a Reader. The reader is not [closed][Reader.close].
+   * This uses the [default options][JSONOptions.defaultOptions]
+   */
+  init {
+    this.reader = if (reader.markSupported()) reader else BufferedReader(reader)
+    this.options = options ?: JSONOptions.defaultOptions
+    eof = false
+    back = false
+    index = -1
+    character = 0
+    line = 1
+    previous = 0.toChar()
+    current = 0.toChar()
   }
-
   /**
    * Constructs a new JSONParser from a string
    *
@@ -125,628 +99,492 @@ public class JSONParser {
    * @param options the options for parsing
    * @since 1.1.0
    */
-  public JSONParser(String source, JSONOptions options) {
-    this(new StringReader(source), options);
-  }
-
   /**
-   * Constructs a new JSONParser from an InputStream. The stream is not {@link InputStream#close()
-   * closed}
+   * Constructs a new JSONParser from a string. This uses the [ default options][JSONOptions.defaultOptions]
    */
-  public JSONParser(InputStream stream, JSONOptions options) {
-    this(new InputStreamReader(stream), options);
+  @JvmOverloads
+  constructor(source: String?, options: JSONOptions? = null) : this(StringReader(source), options) {
   }
-
   /**
-   * Constructs a new JSONParser from a Reader. The reader is not {@link Reader#close() closed}.
-   * This uses the {@link JSONOptions#defaultOptions default options}
+   * Constructs a new JSONParser from an InputStream. The stream is not [ closed][InputStream.close]
    */
-  public JSONParser(Reader reader) {
-    this(reader, null);
-  }
-
   /**
-   * Constructs a new JSONParser from a string. This uses the {@link JSONOptions#defaultOptions
-   * default options}
+   * Constructs a new JSONParser from an InputStream. The stream is not [ closed][InputStream.close]. This uses the [default options][JSONOptions.defaultOptions]
    */
-  public JSONParser(String source) {
-    this(source, null);
+  @JvmOverloads
+  constructor(stream: InputStream?, options: JSONOptions? = null) : this(
+    InputStreamReader(stream),
+    options
+  ) {
   }
 
-  /**
-   * Constructs a new JSONParser from an InputStream. The stream is not {@link InputStream#close()
-   * closed}. This uses the {@link JSONOptions#defaultOptions default options}
-   */
-  public JSONParser(InputStream stream) {
-    this(stream, null);
+  private fun more(): Boolean {
+    return if (back || eof) {
+      back && !eof
+    } else peek().code > 0
   }
-
-  private boolean more() {
-    if (back || eof) {
-      return back && !eof;
-    }
-
-    return peek() > 0;
-  }
-
   /**
    * Forces the parser to re-read the last character
    */
-  public void back() {
-    back = true;
+  fun back() {
+    back = true
   }
 
-  private char peek() {
+  private fun peek(): Char {
     if (eof) {
-      return 0;
+      return 0
     }
-
-    int c;
-
+    val c: Int
     try {
-      reader.mark(1);
-
-      c = reader.read();
-
-      reader.reset();
-    } catch (Exception e) {
-      throw syntaxError("Could not peek from source", e);
+      reader.mark(1)
+      c = reader.read()
+      reader.reset()
+    } catch (e: Exception) {
+      throw syntaxError("Could not peek from source", e)
     }
-
-    return c == -1 ? 0 : (char) c;
+    return if (c == -1) 0 else c.toChar()
   }
 
-  private char next() {
+  private operator fun next(): Char {
     if (back) {
-      back = false;
-      return current;
+      back = false
+      return current
     }
-
-    int c;
-
-    try {
-      c = reader.read();
-    } catch (Exception e) {
-      throw syntaxError("Could not read from source", e);
+    val c: Int
+    c = try {
+      reader.read()
+    } catch (e: Exception) {
+      throw syntaxError("Could not read from source", e)
     }
-
     if (c < 0) {
-      eof = true;
-      return 0;
+      eof = true
+      return 0
     }
-
-    previous = current;
-    current = (char) c;
-
-    index++;
-
-    if (isLineTerminator(current) && (current != '\n' || (current == '\n' && previous != '\r'))) {
-      line++;
-      character = 0;
+    previous = current
+    current = c.toChar()
+    index++
+    if (isLineTerminator(current) && (current != '\n' || current == '\n' && previous != '\r')) {
+      line++
+      character = 0
     } else {
-      character++;
+      character++
     }
-
-    return current;
+    return current
   }
-
   // https://262.ecma-international.org/5.1/#sec-7.3
-  private boolean isLineTerminator(char c) {
-    switch (c) {
-      case '\n':
-      case '\r':
-      case 0x2028:
-      case 0x2029:
-        return true;
-      default:
-        return false;
+  private fun isLineTerminator(c: Char): Boolean {
+    return when (c) {
+      '\n', '\r', 0x2028, 0x2029 -> true
+      else                       -> false
     }
   }
-
   // https://spec.json5.org/#white-space
-  private boolean isWhitespace(char c) {
-    switch (c) {
-      case '\t':
-      case '\n':
-      case 0x0B: // Vertical Tab
-      case '\f':
-      case '\r':
-      case ' ':
-      case 0xA0: // No-break space
-      case 0x2028: // Line separator
-      case 0x2029: // Paragraph separator
-      case 0xFEFF: // Byte Order Mark
-        return true;
-      default:
-        // Unicode category "Zs" (space separators)
-        return Character.getType(c) == Character.SPACE_SEPARATOR;
+  private fun isWhitespace(c: Char): Boolean {
+    return when (c) {
+      '\t', '\n', 0x0B, '\f', '\r', ' ', 0xA0, 0x2028, 0x2029, 0xFEFF -> true
+      else                                                            ->         // Unicode category "Zs" (space separators)
+        Character.getType(c) == Character.SPACE_SEPARATOR.toInt()
     }
   }
-
   // https://262.ecma-international.org/5.1/#sec-9.3.1
-  private boolean isDecimalDigit(char c) {
-    return c >= '0' && c <= '9';
+  private fun isDecimalDigit(c: Char): Boolean {
+    return c >= '0' && c <= '9'
   }
 
-  private void nextMultiLineComment() {
+  private fun nextMultiLineComment() {
     while (true) {
-      char n = next();
-
+      val n = next()
       if (n == '*' && peek() == '/') {
-        next();
-        return;
+        next()
+        return
       }
     }
   }
 
-  private void nextSingleLineComment() {
+  private fun nextSingleLineComment() {
     while (true) {
-      char n = next();
-
-      if (isLineTerminator(n) || n == 0) {
-        return;
+      val n = next()
+      if (isLineTerminator(n) || n.code == 0) {
+        return
       }
     }
   }
-
   /**
    * Reads until encountering a character that is not a whitespace according to the
-   * <a href="https://spec.json5.org/#white-space">JSON5 Specification</a>
+   * [JSON5 Specification](https://spec.json5.org/#white-space)
    *
-   * @return a non-whitespace character, or {@code 0} if the end of the stream has been reached
+   * @return a non-whitespace character, or `0` if the end of the stream has been reached
    */
-  public char nextClean() {
+  fun nextClean(): Char {
     while (true) {
       if (!more()) {
-        throw syntaxError("Unexpected end of data");
+        throw syntaxError("Unexpected end of data")
       }
-
-      char n = next();
-
+      val n = next()
       if (n == '/') {
-        char p = peek();
-
+        val p = peek()
         if (p == '*') {
-          next();
-          nextMultiLineComment();
+          next()
+          nextMultiLineComment()
         } else if (p == '/') {
-          next();
-          nextSingleLineComment();
+          next()
+          nextSingleLineComment()
         } else {
-          return n;
+          return n
         }
       } else if (!isWhitespace(n)) {
-        return n;
+        return n
       }
     }
   }
 
-  private String nextCleanTo(String delimiters) {
-    StringBuilder result = new StringBuilder();
-
+  private fun nextCleanTo(delimiters: String): String {
+    val result = StringBuilder()
     while (true) {
       if (!more()) {
-        throw syntaxError("Unexpected end of data");
+        throw syntaxError("Unexpected end of data")
       }
-
-      char n = nextClean();
-
+      val n = nextClean()
       if (delimiters.indexOf(n) > -1 || isWhitespace(n)) {
-        back();
-        break;
+        back()
+        break
       }
-
-      result.append(n);
+      result.append(n)
     }
-
-    return result.toString();
+    return result.toString()
   }
 
-  private int dehex(char c) {
+  private fun dehex(c: Char): Int {
     if (c >= '0' && c <= '9') {
-      return c - '0';
+      return c - '0'
     }
-
     if (c >= 'a' && c <= 'f') {
-      return c - 'a' + 0xA;
+      return c - 'a' + 0xA
     }
-
-    if (c >= 'A' && c <= 'F') {
-      return c - 'A' + 0xA;
-    }
-
-    return -1;
+    return if (c >= 'A' && c <= 'F') {
+      c - 'A' + 0xA
+    } else -1
   }
 
-  private char unicodeEscape(boolean member, boolean part) {
-    String where = member ? "key" : "string";
-
-    String value = "";
-    int codepoint = 0;
-
-    for (int i = 0; i < 4; ++i) {
-      char n = next();
-      value += n;
-
-      int hex = dehex(n);
-
+  private fun unicodeEscape(member: Boolean, part: Boolean): Char {
+    val where = if (member) "key" else "string"
+    var value = ""
+    var codepoint = 0
+    for (i in 0..3) {
+      val n = next()
+      value += n
+      val hex = dehex(n)
       if (hex == -1) {
-        throw syntaxError("Illegal unicode escape sequence '\\u" + value + "' in " + where);
+        throw syntaxError("Illegal unicode escape sequence '\\u$value' in $where")
       }
-
-      codepoint |= hex << ((3 - i) << 2);
+      codepoint = codepoint or (hex shl (3 - i shl 2))
     }
-
-    if (member && !isMemberNameChar((char) codepoint, part)) {
-      throw syntaxError("Illegal unicode escape sequence '\\u" + value + "' in key");
+    if (member && !isMemberNameChar(codepoint.toChar(), part)) {
+      throw syntaxError("Illegal unicode escape sequence '\\u$value' in key")
     }
-
-    return (char) codepoint;
+    return codepoint.toChar()
   }
 
-  private void checkSurrogate(char hi, char lo) {
+  private fun checkSurrogate(hi: Char, lo: Char) {
     if (options.allowInvalidSurrogates) {
-      return;
+      return
     }
-
     if (!Character.isHighSurrogate(hi) || !Character.isLowSurrogate(lo)) {
-      return;
+      return
     }
-
     if (!Character.isSurrogatePair(hi, lo)) {
-      throw syntaxError(String.format(
+      throw syntaxError(
+        String.format(
           "Invalid surrogate pair: U+%04X and U+%04X",
           hi, lo
-      ));
+        )
+      )
     }
   }
-
   // https://spec.json5.org/#prod-JSON5String
-  private String nextString(char quote) {
-    StringBuilder result = new StringBuilder();
-
-    String value;
-    int codepoint;
-
-    char n = 0;
-    char prev;
-
+  private fun nextString(quote: Char): String {
+    val result = StringBuilder()
+    var value: String
+    var codepoint: Int
+    var n = 0.toChar()
+    var prev: Char
     while (true) {
       if (!more()) {
-        throw syntaxError("Unexpected end of data");
+        throw syntaxError("Unexpected end of data")
       }
-
-      prev = n;
-      n = next();
-
+      prev = n
+      n = next()
       if (n == quote) {
-        break;
+        break
       }
-
-      if (isLineTerminator(n) && n != 0x2028 && n != 0x2029) {
-        throw syntaxError("Unescaped line terminator in string");
+      if (isLineTerminator(n) && n.code != 0x2028 && n.code != 0x2029) {
+        throw syntaxError("Unescaped line terminator in string")
       }
-
       if (n == '\\') {
-        n = next();
-
+        n = next()
         if (isLineTerminator(n)) {
           if (n == '\r' && peek() == '\n') {
-            next();
+            next()
           }
 
           // escaped line terminator/ line continuation
-          continue;
+          continue
         } else {
-          switch (n) {
-            case '\'':
-            case '"':
-            case '\\':
-              result.append(n);
-              continue;
-            case 'b':
-              result.append('\b');
-              continue;
-            case 'f':
-              result.append('\f');
-              continue;
-            case 'n':
-              result.append('\n');
-              continue;
-            case 'r':
-              result.append('\r');
-              continue;
-            case 't':
-              result.append('\t');
-              continue;
-            case 'v': // Vertical Tab
-              result.append((char) 0x0B);
-              continue;
-
-            case '0': // NUL
-              char p = peek();
-
+          when (n) {
+            '\'', '"', '\\' -> {
+              result.append(n)
+              continue
+            }
+            'b'             -> {
+              result.append('\b')
+              continue
+            }
+            'f'             -> {
+              result.append('\f')
+              continue
+            }
+            'n'             -> {
+              result.append('\n')
+              continue
+            }
+            'r'             -> {
+              result.append('\r')
+              continue
+            }
+            't'             -> {
+              result.append('\t')
+              continue
+            }
+            'v'             -> {
+              result.append(0x0B.toChar())
+              continue
+            }
+            '0'             -> {
+              val p = peek()
               if (isDecimalDigit(p)) {
-                throw syntaxError("Illegal escape sequence '\\0" + p + "'");
+                throw syntaxError("Illegal escape sequence '\\0$p'")
               }
-
-              result.append((char) 0);
-              continue;
-
-            case 'x': // Hex escape sequence
-              value = "";
-              codepoint = 0;
-
-              for (int i = 0; i < 2; ++i) {
-                n = next();
-                value += n;
-
-                int hex = dehex(n);
-
+              result.append(0.toChar())
+              continue
+            }
+            'x'             -> {
+              value = ""
+              codepoint = 0
+              var i = 0
+              while (i < 2) {
+                n = next()
+                value += n
+                val hex = dehex(n)
                 if (hex == -1) {
-                  throw syntaxError("Illegal hex escape sequence '\\x" + value + "' in string");
+                  throw syntaxError("Illegal hex escape sequence '\\x$value' in string")
                 }
-
-                codepoint |= hex << ((1 - i) << 2);
+                codepoint = codepoint or (hex shl (1 - i shl 2))
+                ++i
               }
-
-              n = (char) codepoint;
-              break;
-
-            case 'u': // Unicode escape sequence
-              n = unicodeEscape(false, false);
-              break;
-
-            default:
-              if (isDecimalDigit(n)) {
-                throw syntaxError("Illegal escape sequence '\\" + n + "'");
-              }
-
-              break;
+              n = codepoint.toChar()
+            }
+            'u'             -> n = unicodeEscape(false, false)
+            else            -> if (isDecimalDigit(n)) {
+              throw syntaxError("Illegal escape sequence '\\$n'")
+            }
           }
         }
       }
-
-      checkSurrogate(prev, n);
-
-      result.append(n);
+      checkSurrogate(prev, n)
+      result.append(n)
     }
-
-    return result.toString();
+    return result.toString()
   }
 
-  private boolean isMemberNameChar(char n, boolean part) {
-    if (n == '$' || n == '_' || n == 0x200C || n == 0x200D) {
-      return true;
+  private fun isMemberNameChar(n: Char, part: Boolean): Boolean {
+    if (n == '$' || n == '_' || n.code == 0x200C || n.code == 0x200D) {
+      return true
     }
-
-    int type = Character.getType(n);
-
-    switch (type) {
-      case Character.UPPERCASE_LETTER:
-      case Character.LOWERCASE_LETTER:
-      case Character.TITLECASE_LETTER:
-      case Character.MODIFIER_LETTER:
-      case Character.OTHER_LETTER:
-      case Character.LETTER_NUMBER:
-        return true;
-
-      case Character.NON_SPACING_MARK:
-      case Character.COMBINING_SPACING_MARK:
-      case Character.DECIMAL_DIGIT_NUMBER:
-      case Character.CONNECTOR_PUNCTUATION:
-        if (part) {
-          return true;
-        }
-        break;
+    val type = Character.getType(n)
+    when (type) {
+      Character.UPPERCASE_LETTER, Character.LOWERCASE_LETTER, Character.TITLECASE_LETTER, Character.MODIFIER_LETTER, Character.OTHER_LETTER, Character.LETTER_NUMBER -> return true
+      Character.NON_SPACING_MARK, Character.COMBINING_SPACING_MARK, Character.DECIMAL_DIGIT_NUMBER, Character.CONNECTOR_PUNCTUATION                                  -> if (part) {
+        return true
+      }
     }
-
-    return false;
+    return false
   }
-
   /**
    * Reads a member name from the source according to the
-   * <a href="https://spec.json5.org/#prod-JSON5MemberName">JSON5 Specification</a>
+   * [JSON5 Specification](https://spec.json5.org/#prod-JSON5MemberName)
    *
    * @return an member name
    */
-  public String nextMemberName() {
-    StringBuilder result = new StringBuilder();
-
-    char prev;
-    char n = next();
-
+  fun nextMemberName(): String {
+    val result = StringBuilder()
+    var prev: Char
+    var n = next()
     if (n == '"' || n == '\'') {
-      return nextString(n);
+      return nextString(n)
     }
-
-    back();
-    n = 0;
-
+    back()
+    n = 0.toChar()
     while (true) {
       if (!more()) {
-        throw syntaxError("Unexpected end of data");
+        throw syntaxError("Unexpected end of data")
       }
-
-      boolean part = result.length() > 0;
-
-      prev = n;
-      n = next();
-
+      val part = result.length > 0
+      prev = n
+      n = next()
       if (n == '\\') { // unicode escape sequence
-        n = next();
-
+        n = next()
         if (n != 'u') {
-          throw syntaxError("Illegal escape sequence '\\" + n + "' in key");
+          throw syntaxError("Illegal escape sequence '\\$n' in key")
         }
-
-        n = unicodeEscape(true, part);
+        n = unicodeEscape(true, part)
       } else if (!isMemberNameChar(n, part)) {
-        back();
-        break;
+        back()
+        break
       }
-
-      checkSurrogate(prev, n);
-
-      result.append(n);
+      checkSurrogate(prev, n)
+      result.append(n)
     }
-
-    if (result.length() == 0) {
-      throw syntaxError("Empty key");
+    if (result.length == 0) {
+      throw syntaxError("Empty key")
     }
-
-    return result.toString();
+    return result.toString()
   }
-
   /**
    * Reads a value from the source according to the
-   * <a href="https://spec.json5.org/#prod-JSON5Value">JSON5 Specification</a>
+   * [JSON5 Specification](https://spec.json5.org/#prod-JSON5Value)
    *
    * @return an member name
    */
-  public Object nextValue() {
-    char n = nextClean();
-
-    switch (n) {
-      case '"':
-      case '\'':
-        String string = nextString(n);
-
+  fun nextValue(): Any? {
+    val n = nextClean()
+    when (n) {
+      '"', '\'' -> {
+        val string = nextString(n)
         if (options.parseInstants && options.parseStringInstants) {
           try {
-            return Instant.parse(string);
-          } catch (Exception ignored) {
+            return Instant.parse(string)
+          } catch (ignored: Exception) {
           }
         }
-
-        return string;
-      case '{':
-        back();
-        return new JSONObject(this);
-      case '[':
-        back();
-        return new JSONArray(this);
+        return string
+      }
+      '{'       -> {
+        back()
+        return JSONObject(this)
+      }
+      '['       -> {
+        back()
+        return JSONArray(this)
+      }
     }
-
-    back();
-
-    String string = nextCleanTo(",]}");
-
-    if (string.equals("null")) {
-      return null;
+    back()
+    val string = nextCleanTo(",]}")
+    if (string == "null") {
+      return null
     }
-
     if (PATTERN_BOOLEAN.matcher(string).matches()) {
-      return string.equals("true");
+      return string == "true"
     }
-
     if (PATTERN_NUMBER_INTEGER.matcher(string).matches()) {
-      BigInteger bigint = new BigInteger(string);
-
+      val bigint = BigInteger(string)
       if (options.parseInstants && options.parseUnixInstants) {
         try {
-          long unix = bigint.longValueExact();
-
-          return Instant.ofEpochSecond(unix);
-        } catch (Exception ignored) {
+          val unix = bigint.longValueExact()
+          return Instant.ofEpochSecond(unix)
+        } catch (ignored: Exception) {
         }
       }
-
-      return bigint;
+      return bigint
     }
-
     if (PATTERN_NUMBER_FLOAT.matcher(string).matches()) {
-      return new BigDecimal(string);
+      return BigDecimal(string)
     }
-
     if (PATTERN_NUMBER_SPECIAL.matcher(string).matches()) {
-      String special;
-
-      int factor;
-      double d = 0;
-
-      switch (string.charAt(0)) { // +, -, or 0
-        case '+':
-          special = string.substring(1); // +
-          factor = 1;
-          break;
-
-        case '-':
-          special = string.substring(1); // -
-          factor = -1;
-          break;
-
-        default:
-          special = string;
-          factor = 1;
-          break;
+      val special: String
+      val factor: Int
+      var d = 0.0
+      when (string[0]) {
+        '+'  -> {
+          special = string.substring(1) // +
+          factor = 1
+        }
+        '-'  -> {
+          special = string.substring(1) // -
+          factor = -1
+        }
+        else -> {
+          special = string
+          factor = 1
+        }
       }
-
-      switch (special) {
-        case "NaN":
+      when (special) {
+        "NaN"      -> {
           if (!options.allowNaN) {
-            throw syntaxError("NaN is not allowed");
+            throw syntaxError("NaN is not allowed")
           }
-
-          d = Double.NaN;
-          break;
-        case "Infinity":
+          d = Double.NaN
+        }
+        "Infinity" -> {
           if (!options.allowInfinity) {
-            throw syntaxError("Infinity is not allowed");
+            throw syntaxError("Infinity is not allowed")
           }
-
-          d = Double.POSITIVE_INFINITY;
-          break;
+          d = Double.POSITIVE_INFINITY
+        }
       }
-
-      return factor * d;
+      return factor * d
     }
-
     if (PATTERN_NUMBER_HEX.matcher(string).matches()) {
-      String hex;
-
-      int factor;
-
-      switch (string.charAt(0)) { // +, -, or 0
-        case '+':
-          hex = string.substring(3); // +0x
-          factor = 1;
-          break;
-
-        case '-':
-          hex = string.substring(3); // -0x
-          factor = -1;
-          break;
-
-        default:
-          hex = string.substring(2); // 0x
-          factor = 1;
-          break;
+      val hex: String
+      val factor: Int
+      when (string[0]) {
+        '+'  -> {
+          hex = string.substring(3) // +0x
+          factor = 1
+        }
+        '-'  -> {
+          hex = string.substring(3) // -0x
+          factor = -1
+        }
+        else -> {
+          hex = string.substring(2) // 0x
+          factor = 1
+        }
       }
-
-      BigInteger bigint = new BigInteger(hex, 16);
-
-      if (factor == -1) {
-        return bigint.negate();
-      }
-
-      return bigint;
+      val bigint = BigInteger(hex, 16)
+      return if (factor == -1) {
+        bigint.negate()
+      } else bigint
     }
-
-    throw new JSONException("Illegal value '" + string + "'");
+    throw JSONException("Illegal value '$string'")
   }
 
-  public JSONException syntaxError(String message, Throwable cause) {
-    return new JSONException(message + this, cause);
+  fun syntaxError(message: String, cause: Throwable?): JSONException {
+    return JSONException(message + this, cause)
   }
 
-  public JSONException syntaxError(String message) {
-    return new JSONException(message + this);
+  fun syntaxError(message: String): JSONException {
+    return JSONException(message + this)
   }
 
-  @Override
-  public String toString() {
-    return " at index " + index + " [character " + character + " in line " + line + "]";
+  override fun toString(): String {
+    return " at index $index [character $character in line $line]"
   }
 
+  companion object {
+    private val PATTERN_BOOLEAN = Pattern.compile(
+      "true|false"
+    )
+    private val PATTERN_NUMBER_FLOAT = Pattern.compile(
+      "[+-]?((0|[1-9]\\d*)(\\.\\d*)?|\\.\\d+)([eE][+-]?\\d+)?"
+    )
+    private val PATTERN_NUMBER_INTEGER = Pattern.compile(
+      "[+-]?(0|[1-9]\\d*)"
+    )
+    private val PATTERN_NUMBER_HEX = Pattern.compile(
+      "[+-]?0[xX][0-9a-fA-F]+"
+    )
+    private val PATTERN_NUMBER_SPECIAL = Pattern.compile(
+      "[+-]?(Infinity|NaN)"
+    )
+  }
 }

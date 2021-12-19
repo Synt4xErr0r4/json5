@@ -21,96 +21,104 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package at.syntaxerror.json5;
-
+package at.syntaxerror.json5
 
 /**
- * This class used is used to customize the behaviour of {@link JSONParser parsing} and {@link JSONStringify stringifying}
+ * This class used is used to customize the behaviour of [parsing][JSONParser] and [stringifying][JSONStringify]
  *
  * @author SyntaxError404
  * @since 1.1.0
  */
-public class JSONOptions {
-
-  /**
-   * The default options for parsing and stringifying
-   */
-  public static JSONOptions defaultOptions = new JSONOptions();
-
+class JSONOptions {
   /**
    * Whether instants should be parsed as such.
-   * If this is {@code false}, {@link #parseStringInstants} and {@link #parseUnixInstants}
+   * If this is `false`, [.parseStringInstants] and [.parseUnixInstants]
    * are ignored
-   * <p>
-   * Default: {@code true}
-   * <p>
-   * <i>This is a {@link JSONParser Parser}-only option</i>
+   *
+   *
+   * Default: `true`
+   *
+   *
+   * *This is a [Parser][JSONParser]-only option*
    */
-  public boolean parseInstants = true;
+  var parseInstants = true
   /**
    * Whether string instants (according to
-   * <a href="https://datatracker.ietf.org/doc/html/rfc3339#section-5.6">RFC 3339, Section 5.6</a>)
+   * [RFC 3339, Section 5.6](https://datatracker.ietf.org/doc/html/rfc3339#section-5.6))
    * should be parsed as such.
-   * Ignored if {@link #parseInstants} is {@code false}
-   * <p>
-   * Default: {@code true}
-   * <p>
-   * <i>This is a {@link JSONParser Parser}-only option</i>
+   * Ignored if [.parseInstants] is `false`
+   *
+   *
+   * Default: `true`
+   *
+   *
+   * *This is a [Parser][JSONParser]-only option*
    */
-  public boolean parseStringInstants = true;
+  var parseStringInstants = true
   /**
    * Whether unix instants (integers) should be parsed as such.
-   * Ignored if {@link #parseInstants} is {@code false}
-   * <p>
-   * Default: {@code true}
-   * <p>
-   * <i>This is a {@link JSONParser Parser}-only option</i>
+   * Ignored if [.parseInstants] is `false`
+   *
+   *
+   * Default: `true`
+   *
+   *
+   * *This is a [Parser][JSONParser]-only option*
    */
-  public boolean parseUnixInstants = true;
-
+  var parseUnixInstants = true
   /**
    * Whether instants should be stringifyed as unix timestamps.
-   * If this is {@code false}, instants will be stringifyed as strings
-   * (according to <a href="https://datatracker.ietf.org/doc/html/rfc3339#section-5.6">RFC 3339, Section 5.6</a>).
-   * <p>
-   * Default: {@code false}
-   * <p>
-   * <i>This is a {@link JSONStringify Stringify}-only option</i>
+   * If this is `false`, instants will be stringifyed as strings
+   * (according to [RFC 3339, Section 5.6](https://datatracker.ietf.org/doc/html/rfc3339#section-5.6)).
+   *
+   *
+   * Default: `false`
+   *
+   *
+   * *This is a [Stringify][JSONStringify]-only option*
    */
-  public boolean stringifyUnixInstants = false;
-
+  var stringifyUnixInstants = false
   /**
-   * Whether {@code NaN} should be allowed as a number
-   * <p>
-   * Default: {@code true}
+   * Whether `NaN` should be allowed as a number
+   *
+   *
+   * Default: `true`
    */
-  public boolean allowNaN = true;
-
+  var allowNaN = true
   /**
-   * Whether {@code Infinity} should be allowed as a number.
-   * This applies to both {@code +Infinity} and {@code -Infinity}
-   * <p>
-   * Default: {@code true}
-   * */
-  public boolean allowInfinity = true;
-
+   * Whether `Infinity` should be allowed as a number.
+   * This applies to both `+Infinity` and `-Infinity`
+   *
+   *
+   * Default: `true`
+   */
+  var allowInfinity = true
   /**
    * Whether invalid unicode surrogate pairs should be allowed
-   * <p>
-   * Default: {@code true}
-   * <p>
-   * <i>This is a {@link JSONParser Parser}-only option</i>
+   *
+   *
+   * Default: `true`
+   *
+   *
+   * *This is a [Parser][JSONParser]-only option*
    */
-  public boolean allowInvalidSurrogates = true;
-
+  var allowInvalidSurrogates = true
   /**
-   * Whether string should be single-quoted ({@code '}) instead of double-quoted ({@code "}).
-   * This also includes a {@link JSONObject JSONObject's} member names
-   * <p>
-   * Default: {@code false}
-   * <p>
-   * <i>This is a {@link JSONStringify Stringify}-only option</i>
+   * Whether string should be single-quoted (`'`) instead of double-quoted (`"`).
+   * This also includes a [JSONObject&#39;s][JSONObject] member names
+   *
+   *
+   * Default: `false`
+   *
+   *
+   * *This is a [Stringify][JSONStringify]-only option*
    */
-  public boolean quoteSingle = false;
+  var quoteSingle = false
 
+  companion object {
+    /**
+     * The default options for parsing and stringifying
+     */
+    var defaultOptions = JSONOptions()
+  }
 }

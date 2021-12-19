@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package at.syntaxerror.json5;
+package at.syntaxerror.json5
 
 /**
  * An exception used by the JSON5 for Java Library if something went wrong
@@ -29,22 +29,7 @@ package at.syntaxerror.json5;
  * @author SyntaxError404
  * @version 1.0.0
  */
-public class JSONException extends RuntimeException {
-
-  public JSONException() {
-    super();
-  }
-
-  public JSONException(String message) {
-    super(message);
-  }
-
-  public JSONException(Throwable cause) {
-    super(cause);
-  }
-
-  public JSONException(String message, Throwable cause) {
-    super(message, cause);
-  }
-
-}
+class JSONException(
+  message: String?,
+  cause: Throwable?,
+) : RuntimeException(message, cause)
