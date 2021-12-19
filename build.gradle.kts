@@ -87,6 +87,11 @@ tasks.withType<JacocoReport> {
     logger.lifecycle("Jacoco report for ${project.name}: ${htmlReportLocation.get()}")
   }
 }
+
 tasks.withType<JavaCompile> {
   options.encoding = "UTF-8"
+}
+
+tasks.wrapper {
+  gradleVersion = "7.3.2"
 }
