@@ -1,10 +1,10 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-  val kotlinVersion = "1.6.10"
-  kotlin("jvm") version kotlinVersion
+  kotlin("jvm") version "1.6.10"
   jacoco
   `java-library`
+  id("me.qoomon.git-versioning") version "5.1.1"
 }
 
 dependencies {
@@ -31,8 +31,17 @@ dependencies {
 }
 
 group = "at.syntaxerror"
-version = "2.0.0"
 description = "JSON5 for Kotlin"
+version = "0.0.0-SNAPSHOT"
+gitVersioning.apply {
+  refs {
+    branch(".+") { version = "\${ref}-SNAPSHOT" }
+    tag("v(?<version>.*)") { version = "\${ref.version}" }
+  }
+
+  // optional fallback configuration in case of no matching ref configuration
+  rev { version = "\${commit}" }
+}
 
 java {
   withSourcesJar()
