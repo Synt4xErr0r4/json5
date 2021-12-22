@@ -4,25 +4,26 @@ plugins {
   val kotlinVersion = "1.6.10"
   kotlin("jvm") version kotlinVersion
   jacoco
+  `java-library`
 }
 
 dependencies {
   implementation(platform("org.jetbrains.kotlin:kotlin-bom"))
 
   val kotlinxSerializationVersion = "1.3.1"
-  implementation(project.dependencies.enforcedPlatform("org.jetbrains.kotlinx:kotlinx-serialization-bom:$kotlinxSerializationVersion"))
-  api("org.jetbrains.kotlinx:kotlinx-serialization-core")
-  api("org.jetbrains.kotlinx:kotlinx-serialization-json")
+  implementation(platform("org.jetbrains.kotlinx:kotlinx-serialization-bom:$kotlinxSerializationVersion"))
+  api("org.jetbrains.kotlinx:kotlinx-serialization-core:$kotlinxSerializationVersion")
+  api("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinxSerializationVersion")
 
   val junitVersion = "5.8.2"
-  testImplementation(enforcedPlatform("org.junit:junit-bom:$junitVersion"))
+  testImplementation(platform("org.junit:junit-bom:$junitVersion"))
   testImplementation("org.junit.jupiter:junit-jupiter")
   testRuntimeOnly("org.junit.platform:junit-platform-launcher") {
     because("Only needed to run tests in a version of IntelliJ IDEA that bundles older versions")
   }
 
   val kotestVersion = "5.0.3"
-  testImplementation(enforcedPlatform("io.kotest:kotest-bom:$kotestVersion"))
+  testImplementation(platform("io.kotest:kotest-bom:$kotestVersion"))
   testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
   testImplementation("io.kotest:kotest-assertions-core:$kotestVersion")
   testImplementation("io.kotest:kotest-property:$kotestVersion")
@@ -91,5 +92,5 @@ tasks.withType<JavaCompile> {
 }
 
 tasks.wrapper {
-  gradleVersion = "7.3.2"
+  gradleVersion = "7.3.3"
 }
