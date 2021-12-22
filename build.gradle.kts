@@ -5,6 +5,7 @@ plugins {
   jacoco
   `java-library`
   id("me.qoomon.git-versioning") version "5.1.1"
+  `maven-publish`
 }
 
 dependencies {
@@ -44,6 +45,7 @@ gitVersioning.apply {
 }
 
 java {
+  withJavadocJar()
   withSourcesJar()
 }
 
@@ -105,3 +107,17 @@ tasks.wrapper {
   distributionType = Wrapper.DistributionType.ALL
 }
 tasks.assemble { dependsOn(tasks.wrapper) }
+
+tasks.javadoc {
+  if (JavaVersion.current().isJava9Compatible) {
+    (options as StandardJavadocDocletOptions).addBooleanOption("html5", true)
+  }
+}
+
+publishing {
+  publications {
+    create<MavenPublication>("mavenJava") {
+      from(components["java"])
+    }
+  }
+}
