@@ -24,6 +24,7 @@
 package json5;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Instant;
@@ -32,9 +33,11 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import at.syntaxerror.json5.JSONArray;
+import at.syntaxerror.json5.JSONException;
 import at.syntaxerror.json5.JSONObject;
 import at.syntaxerror.json5.JSONOptions;
 import at.syntaxerror.json5.JSONParser;
+import at.syntaxerror.json5.JSONStringify;
 
 /**
  * @author SyntaxError404
@@ -186,6 +189,36 @@ class UnitTests {
 	
 	JSONObject parse(String str) {
 		return new JSONObject(new JSONParser(str));
+	}
+	
+	/** @since 1.2.1 */
+	@Test
+	void testStringifyUnicode() {
+		assertEquals(
+			"{'a':'\\uD800'}",
+			JSONStringify.toString(
+				new JSONObject().set("a", "\uD800"), // U+D800 is a surrogate character and should therefore be escaped
+				0,
+				JSONOptions.builder()
+					.quoteSingle(true)
+					.build()
+			)
+		);
+	}
+	
+	@Test
+	void testParseInvalidSurrogate() {
+		assertThrows(
+			JSONException.class,
+			() -> new JSONObject(
+				new JSONParser(
+					"{a: 'A\uD800'}", // invalid surrogate sequence (non-surrogate + high surrogate)
+					JSONOptions.builder()
+						.allowInvalidSurrogates(false)
+						.build()
+				)
+			)
+		);
 	}
 
 }

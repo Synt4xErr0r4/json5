@@ -377,14 +377,14 @@ public class JSONParser {
 	private void checkSurrogate(char hi, char lo) {
 		if(options.isAllowInvalidSurrogates())
 			return;
+
+		System.out.println("check: " + ((int) hi) + " / " + ((int) lo));
 		
-		if(!Character.isHighSurrogate(hi) || !Character.isLowSurrogate(lo))
-			return;
-		
-		if(!Character.isSurrogatePair(hi, lo))
+		if((Character.isHighSurrogate(hi) && !Character.isSurrogate(lo)) ||
+			(!Character.isSurrogate(hi) && Character.isLowSurrogate(lo)))
 			throw syntaxError(String.format(
 				"Invalid surrogate pair: U+%04X and U+%04X",
-				hi, lo
+				(int) hi, (int) lo
 			));
 	}
 	
@@ -405,8 +405,10 @@ public class JSONParser {
 			prev = n;
 			n = next();
 			
-			if(n == quote)
+			if(n == quote) {
+				checkSurrogate(prev, (char) 0);
 				break;
+			}
 			
 			if(isLineTerminator(n) && n != 0x2028 && n != 0x2029)
 				throw syntaxError("Unescaped line terminator in string");
@@ -559,6 +561,7 @@ public class JSONParser {
 			}
 			else if(!isMemberNameChar(n, part)) {
 				back();
+				checkSurrogate(prev, (char) 0);
 				break;
 			}
 			

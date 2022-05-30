@@ -328,7 +328,7 @@ public class JSONStringify {
 				case Character.SURROGATE:
 				case Character.UNASSIGNED:
 					quoted.append("\\u");
-					quoted.append(String.format("%04X", c));
+					quoted.append(String.format("%04X", (int) c));
 					break;
 				default:
 					quoted.append(c);
