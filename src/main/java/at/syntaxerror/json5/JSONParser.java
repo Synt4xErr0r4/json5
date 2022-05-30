@@ -378,8 +378,6 @@ public class JSONParser {
 		if(options.isAllowInvalidSurrogates())
 			return;
 
-		System.out.println("check: " + ((int) hi) + " / " + ((int) lo));
-		
 		if((Character.isHighSurrogate(hi) && !Character.isSurrogate(lo)) ||
 			(!Character.isSurrogate(hi) && Character.isLowSurrogate(lo)))
 			throw syntaxError(String.format(
