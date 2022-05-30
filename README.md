@@ -10,7 +10,7 @@ This is a reference implementation, capable of parsing JSON5 data according to t
 
 ## Getting started
 
-In order to use the code, you can either [download the jar](https://github.com/Synt4xErr0r4/json5/releases/download/1.2.0/json5-1.2.0.jar), or use the Maven dependency:
+In order to use the code, you can either [download the jar](https://github.com/Synt4xErr0r4/json5/releases/download/1.2.1/json5-1.2.1.jar), or use the Maven dependency:
 
 ```xml
 <!-- Repository -->
@@ -25,7 +25,7 @@ In order to use the code, you can either [download the jar](https://github.com/S
 <dependency>
   <groupId>at.syntaxerror</groupId>
   <artifactId>json5</artifactId>
-  <version>1.2.0</version>
+  <version>1.2.1</version>
 </dependency>
 ```
 
@@ -175,6 +175,11 @@ The following options are currently implemented:
   removes all values from an object/array
 - added `remove(String key)` and `remove(int index)` methods  
   remove a certain key/index from an object/array
+
+### v1.2.1
+
+- fixed a bug where stringifying non-printable unicode characters would throw a ClassCastException
+- fixed a bug where checking for invalid unicode surrogate pairs would not work as intended
 
 ## Documentation
 
