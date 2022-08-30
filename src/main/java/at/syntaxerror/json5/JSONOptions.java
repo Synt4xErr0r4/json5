@@ -186,4 +186,46 @@ public class JSONOptions {
 	@Builder.Default
 	boolean quoteSingle = false;
 	
+	/**
+	 * Specifies the behavior when the same key is encountered multiple times within the same {@link JSONObject}
+	 * <p>
+	 * Default: {@link DuplicateBehavior#UNIQUE UNIQUE}
+	 * <p>
+	 * <i>This is a {@link JSONParser Parser}-only option</i>
+	 * 
+	 * @param duplicateBehaviour the behavior
+	 * 
+	 * @return the behavior when encountering duplicate keys
+	 * @since 1.3.0
+	 */
+	@Builder.Default
+	DuplicateBehavior duplicateBehaviour = DuplicateBehavior.UNIQUE;
+	
+	/**
+	 * An enum containing all supported behaviors for duplicate keys
+	 * 
+	 * @since 1.3.0
+	 */
+	public static enum DuplicateBehavior {
+		
+		/**
+		 * Throws an {@link JSONException exception} when a key
+		 * is encountered multiple times within the same object
+		 */
+		UNIQUE,
+		
+		/**
+		 * Only the last encountered value is significant,
+		 * all previous occurrences are silently discarded
+		 */
+		LAST_WINS,
+		
+		/**
+		 * Wraps duplicate values inside an {@link JSONArray array},
+		 * effectively treating them as if they were declared as one
+		 */
+		DUPLICATE
+		
+	}
+	
 }

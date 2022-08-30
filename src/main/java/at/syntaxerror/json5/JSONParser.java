@@ -59,7 +59,7 @@ public class JSONParser {
 	);
 	
 	private final Reader reader;
-	private final JSONOptions options;
+	protected final JSONOptions options;
 
 	/** whether the end of the file has been reached */
 	private boolean eof;

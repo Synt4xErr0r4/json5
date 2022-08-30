@@ -27,12 +27,15 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
+
+import at.syntaxerror.json5.JSONOptions.DuplicateBehavior;
 
 /**
  * A JSONObject is a map (key-value) structure capable of holding multiple values,
@@ -75,6 +78,10 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 		if(parser.nextClean() != '{')
 			throw parser.syntaxError("A JSONObject must begin with '{'");
 		
+		DuplicateBehavior duplicateBehavior = parser.options.getDuplicateBehaviour();
+		
+		Set<String> duplicates = new HashSet<>();
+		
 		while(true) {
 			c = parser.nextClean();
 			
@@ -88,7 +95,9 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 				key = parser.nextMemberName();
 			}
 			
-			if(has(key))
+			boolean duplicate = has(key);
+			
+			if(duplicate && duplicateBehavior == DuplicateBehavior.UNIQUE)
 				throw new JSONException("Duplicate key " + JSONStringify.quote(key));
 			
 			c = parser.nextClean();
@@ -97,6 +106,24 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 				throw parser.syntaxError("Expected ':' after a key, got '" + c + "' instead");
 			
 			Object value = parser.nextValue();
+			
+			if(duplicate && duplicateBehavior == DuplicateBehavior.DUPLICATE) {
+				
+				JSONArray array;
+				
+				if(duplicates.contains(key))
+					array = getArray(key);
+				
+				else {
+					array = new JSONArray();
+					array.add(get(key));
+					
+					duplicates.add(key);
+				}
+				
+				array.add(value);
+				value = array;
+			}
 			
 			values.put(key, value);
 			

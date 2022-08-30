@@ -36,6 +36,7 @@ import at.syntaxerror.json5.JSONArray;
 import at.syntaxerror.json5.JSONException;
 import at.syntaxerror.json5.JSONObject;
 import at.syntaxerror.json5.JSONOptions;
+import at.syntaxerror.json5.JSONOptions.DuplicateBehavior;
 import at.syntaxerror.json5.JSONParser;
 import at.syntaxerror.json5.JSONStringify;
 
@@ -221,4 +222,52 @@ class UnitTests {
 		);
 	}
 
+	/** @since 1.3.0 */
+	@Test
+	void testDuplicateUnique() {
+		assertThrows(
+			JSONException.class,
+			() -> new JSONObject(
+				new JSONParser(
+					"{ a: 123, b: 456, a: 789 }"
+				)
+			)
+		);
+	}
+	
+	@Test
+	void testDuplicateLastValueWins() {
+		assertEquals(
+			new JSONObject(
+				new JSONParser(
+					"{ a: 123, b: 456, a: 789 }",
+					JSONOptions.builder()
+						.duplicateBehaviour(DuplicateBehavior.LAST_WINS)
+						.build()
+				)
+			).getInt("a"),
+			789
+		);
+	}
+	
+	@Test
+	void testDuplicateDuplicate() {
+		assertEquals(
+			new JSONObject(
+				new JSONParser(
+					"{ a: 123, b: 456, a: 789, c: false, a: 'test123' }",
+					JSONOptions.builder()
+						.duplicateBehaviour(DuplicateBehavior.DUPLICATE)
+						.build()
+				)
+			).getArray("a")
+				.toString(),
+			new JSONArray()
+				.add(123)
+				.add(789)
+				.add("test123")
+				.toString()
+		);
+	}
+	
 }

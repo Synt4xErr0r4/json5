@@ -10,7 +10,7 @@ This is a reference implementation, capable of parsing JSON5 data according to t
 
 ## Getting started
 
-In order to use the code, you can either [download the jar](https://github.com/Synt4xErr0r4/json5/releases/download/1.2.1/json5-1.2.1.jar), or use the Maven dependency:
+In order to use the code, you can either [download the jar](https://github.com/Synt4xErr0r4/json5/releases/download/1.3.0/json5-1.3.0.jar), or use the Maven dependency:
 
 ```xml
 <!-- Repository -->
@@ -25,7 +25,7 @@ In order to use the code, you can either [download the jar](https://github.com/S
 <dependency>
   <groupId>at.syntaxerror</groupId>
   <artifactId>json5</artifactId>
-  <version>1.2.1</version>
+  <version>1.3.0</version>
 </dependency>
 ```
 
@@ -180,6 +180,35 @@ The following options are currently implemented:
 
 - fixed a bug where stringifying non-printable unicode characters would throw a ClassCastException
 - fixed a bug where checking for invalid unicode surrogate pairs would not work as intended
+
+### v1.3.0
+
+- added option `duplicateBehavior` (*Parser-only*) for different duplicate behaviors to `JSONOptions` ([proposed here](https://github.com/json5/json5-spec/issues/38)). The default behavior is `UNIQUE`. The enum `JSONOptions.DuplicateBehavior` defines the following behaviors:
+  - `UNIQUE`: Throws an exception when a key is encountered multiple times within the same object
+  - `LAST_VALUE_WINS`: Only the last encountered value is significant, all previous occurrences are silently discarded
+  - `DUPLICATE`: Wraps duplicate values inside an array, effectively treating them as if they were declared as one
+
+Example:
+
+```json
+{
+  "a": true,
+  "a": 123
+}
+```
+
+`UNIQUE` throws a `JSONException`, `LAST_VALUE_WINS` declares `a` as `123`.  
+
+When the behavior is `DUPLICATE`, the snippet above is effectively equal to the following:
+
+```json
+{
+  "a": [
+    true,
+    123
+  ]
+}
+```
 
 ## Documentation
 
