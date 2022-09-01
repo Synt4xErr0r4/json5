@@ -55,7 +55,7 @@ import at.syntaxerror.json5.JSONObject;
 
 try(InputStream stream = ...) {
     JSONObject jsonObject = new JSONObject(new JSONParser(stream));
-    // ...
+    //...
 } catch (Exception e) {
     //...
 }
@@ -171,9 +171,9 @@ The following options are currently implemented:
 
 ### v1.2.0
 
-- added `clear()` method  
+- added `clear()` method:  
   removes all values from an object/array
-- added `remove(String key)` and `remove(int index)` methods  
+- added `remove(String key)` and `remove(int index)` methods:  
   remove a certain key/index from an object/array
 
 ### v1.2.1
@@ -185,7 +185,7 @@ The following options are currently implemented:
 
 - added option `duplicateBehavior` (*Parser-only*) for different duplicate behaviors to `JSONOptions` ([proposed here](https://github.com/json5/json5-spec/issues/38)). The default behavior is `UNIQUE`. The enum `JSONOptions.DuplicateBehavior` defines the following behaviors:
   - `UNIQUE`: Throws an exception when a key is encountered multiple times within the same object
-  - `LAST_VALUE_WINS`: Only the last encountered value is significant, all previous occurrences are silently discarded
+  - `LAST_WINS`: Only the last encountered value is significant, all previous occurrences are silently discarded
   - `DUPLICATE`: Wraps duplicate values inside an array, effectively treating them as if they were declared as one
 
 Example:
@@ -197,7 +197,7 @@ Example:
 }
 ```
 
-`UNIQUE` throws a `JSONException`, `LAST_VALUE_WINS` declares `a` as `123`.  
+`UNIQUE` throws a `JSONException`, `LAST_WINS` declares `a` as `123`.  
 
 When the behavior is `DUPLICATE`, the snippet above is effectively equal to the following:
 
