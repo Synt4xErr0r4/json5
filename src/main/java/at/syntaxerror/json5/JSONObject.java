@@ -25,6 +25,7 @@ package at.syntaxerror.json5;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.time.DateTimeException;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -32,6 +33,9 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -79,7 +83,7 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 			throw parser.syntaxError("A JSONObject must begin with '{'");
 		
 		DuplicateBehavior duplicateBehavior = parser.options.getDuplicateBehaviour();
-		
+
 		Set<String> duplicates = new HashSet<>();
 		
 		while(true) {
@@ -96,7 +100,7 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 			}
 			
 			boolean duplicate = has(key);
-			
+
 			if(duplicate && duplicateBehavior == DuplicateBehavior.UNIQUE)
 				throw new JSONException("Duplicate key " + JSONStringify.quote(key));
 			
@@ -108,19 +112,18 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 			Object value = parser.nextValue();
 			
 			if(duplicate && duplicateBehavior == DuplicateBehavior.DUPLICATE) {
-				
 				JSONArray array;
-				
+
 				if(duplicates.contains(key))
 					array = getArray(key);
-				
+
 				else {
 					array = new JSONArray();
 					array.add(get(key));
-					
+
 					duplicates.add(key);
 				}
-				
+
 				array.add(value);
 				value = array;
 			}
@@ -138,6 +141,44 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	}
 	
 	//
+	
+	/**
+	 * Creates a shallow copy of the JSONObject
+	 * 
+	 * @return the new JSONObject
+	 * @since 2.0.0
+	 */
+	public JSONObject copy() {
+		JSONObject copy = new JSONObject();
+		copy.values.putAll(values);
+		
+		return copy;
+	}
+	
+	/**
+	 * Creates a deep copy of the JSONObject
+	 * 
+	 * @return the new JSONObject
+	 * @since 2.0.0
+	 */
+	public JSONObject deepCopy() {
+		JSONObject copy = new JSONObject();
+		
+		for(Map.Entry<String, Object> entry : values.entrySet()) {
+			String key = entry.getKey();
+			Object value = entry.getValue();
+			
+			if(value instanceof JSONArray)
+				value = ((JSONArray) value).deepCopy();
+			
+			else if(value instanceof JSONObject)
+				value = ((JSONObject) value).deepCopy();
+			
+			copy.values.put(key, value);
+		}
+		
+		return copy;
+	}
 	
 	/**
 	 * Converts the JSONObject into a map. All JSONObjects and JSONArrays
@@ -165,7 +206,8 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	}
 
 	/**
-	 * Returns a set of keys of the JSONObject
+	 * Returns a set of keys of the JSONObject. Modifying the set
+	 * will modify the JSONObject
 	 * 
 	 * @return a set of keys
 	 * 
@@ -179,7 +221,9 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
      * Returns a set of entries of the JSONObject. Modifying the set 
      * or an entry will modify the JSONObject
      *
-     * Use with caution.
+     * <p>
+     * Use with caution. Inserting objects of unknown types
+     * may cause issues when trying to use the JSONObject
      *
      * @return a set of entries
      *
@@ -193,6 +237,18 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	public Iterator<Entry<String, Object>> iterator() {
 		return values.entrySet().iterator();
 	}
+
+	/**
+     * Iterates over the whole JSONObject and performs the given action for each element.
+     * <p>
+	 * For each entry in the object, the predicate receives the key and its associated value.
+	 * 
+	 * @param action The action for each entry
+	 * @since 2.0.0
+	 */
+	public void forEach(BiConsumer<String, Object> action) {
+		forEach(entry -> action.accept(entry.getKey(), entry.getValue()));
+	}
 	
 	/**
 	 * Returns the number of entries in the JSONObject
@@ -202,6 +258,8 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	public int length() {
 		return values.size();
 	}
+	
+	// -- REMOVE --
 	
 	/**
 	 * Removes all values from this JSONObject
@@ -217,12 +275,538 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	 * 
 	 * @param key the key to be removed
 	 * @since 1.2.0
-	 * 
 	 * @throws JSONException if the key does not exist
 	 */
 	public void remove(String key) {
 		checkKey(key);
 		values.remove(key);
+	}
+	
+	// -- REMOVE IF --
+	
+	/**
+	 * Removes all entries from a JSONObject where the predicate returns {@code true}.
+	 * <p>
+	 * For each entry in the object, the predicate receives the key and its associated value.
+	 * 
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 */
+	public JSONObject removeIf(BiPredicate<String, Object> predicate) {
+		Iterator<Map.Entry<String, Object>> iter = values.entrySet().iterator();
+		
+		while(iter.hasNext()) {
+			Map.Entry<String, Object> entry = iter.next();
+			
+			if(predicate.test(entry.getKey(), entry.getValue()))
+				iter.remove();
+		}
+		
+		return this;
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code true}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 */
+	public JSONObject removeIf(String key, Predicate<Object> predicate) {
+		if(predicate.test(checkKey(key)))
+			values.remove(key);
+		
+		return this;
+	}
+	
+	private <T> JSONObject removeIf(String key, Predicate<T> predicate, Function<String, T> getter) {
+		checkKey(key);
+		
+		if(predicate.test(getter.apply(key)))
+			values.remove(key);
+		
+		return this;
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code true}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not a boolean
+	 */
+	public JSONObject removeBooleanIf(String key, Predicate<Boolean> predicate) {
+		return removeIf(key, predicate, this::getBoolean);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code true}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not a byte
+	 */
+	public JSONObject removeByteIf(String key, Predicate<Byte> predicate) {
+		return removeIf(key, predicate, this::getByte);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code true}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not a short
+	 */
+	public JSONObject removeShortIf(String key, Predicate<Short> predicate) {
+		return removeIf(key, predicate, this::getShort);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code true}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not an int
+	 */
+	public JSONObject removeIntIf(String key, Predicate<Integer> predicate) {
+		return removeIf(key, predicate, this::getInt);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code true}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not a long
+	 */
+	public JSONObject removeLongIf(String key, Predicate<Long> predicate) {
+		return removeIf(key, predicate, this::getLong);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code true}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not a float
+	 */
+	public JSONObject removeFloatIf(String key, Predicate<Float> predicate) {
+		return removeIf(key, predicate, this::getFloat);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code true}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not a double
+	 */
+	public JSONObject removeDoubleIf(String key, Predicate<Double> predicate) {
+		return removeIf(key, predicate, this::getDouble);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code true}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not a byte, or if the value does not fit into a byte
+	 */
+	public JSONObject removeByteExactIf(String key, Predicate<Byte> predicate) {
+		return removeIf(key, predicate, this::getByteExact);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code true}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not a short, or if the value does not fit into a short
+	 */
+	public JSONObject removeShortExactIf(String key, Predicate<Short> predicate) {
+		return removeIf(key, predicate, this::getShortExact);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code true}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not an int, or if the value does not fit into an int
+	 */
+	public JSONObject removeIntExactIf(String key, Predicate<Integer> predicate) {
+		return removeIf(key, predicate, this::getIntExact);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code true}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not a long, or if the value does not fit into a long
+	 */
+	public JSONObject removeLongExactIf(String key, Predicate<Long> predicate) {
+		return removeIf(key, predicate, this::getLongExact);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code true}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not a float, or if the value does not fit into a float
+	 */
+	public JSONObject removeFloatExactIf(String key, Predicate<Float> predicate) {
+		return removeIf(key, predicate, this::getFloatExact);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code true}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not a double, or if the value does not fit into a double
+	 */
+	public JSONObject removeDoubleExactIf(String key, Predicate<Double> predicate) {
+		return removeIf(key, predicate, this::getDoubleExact);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code true}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not a JSONObject
+	 */
+	public JSONObject removeObjectIf(String key, Predicate<JSONObject> predicate) {
+		return removeIf(key, predicate, this::getObject);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code true}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not a JSONArray
+	 */
+	public JSONObject removeArrayIf(String key, Predicate<JSONArray> predicate) {
+		return removeIf(key, predicate, this::getArray);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code true}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not an instant
+	 */
+	public JSONObject removeInstantIf(String key, Predicate<Instant> predicate) {
+		return removeIf(key, predicate, this::getInstant);
+	}
+	
+	// -- REMOVE KEYS --
+
+	/**
+	 * Removes all the keys if the same key exists within the other JSONObject too.
+	 * <p>
+	 * This does not compare the values.
+	 * 
+	 * @param obj the other JSONObject
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 */
+	public JSONObject removeKeys(JSONObject obj) {
+		removeIf((key, value) -> obj.has(key));
+		return this;
+	}
+	
+	// -- RETAIN IF --
+	
+	/**
+	 * Removes all entries from a JSONObject where the predicate returns {@code false}.
+	 * <p>
+	 * For each entry in the object, the predicate receives the key and its associated value. 
+	 * 
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 */
+	public JSONObject retainIf(BiPredicate<String, Object> predicate) {
+		return removeIf(predicate.negate());
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code false}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 */
+	public JSONObject retainIf(String key, Predicate<Object> predicate) {
+		return removeIf(key, predicate.negate());
+	}
+	
+	private <T> JSONObject retainIf(String key, Predicate<T> predicate, Function<String, T> getter) {
+		return removeIf(key, predicate.negate(), getter);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code false}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not a boolean
+	 */
+	public JSONObject retainBooleanIf(String key, Predicate<Boolean> predicate) {
+		return retainIf(key, predicate, this::getBoolean);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code false}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not a byte
+	 */
+	public JSONObject retainByteIf(String key, Predicate<Byte> predicate) {
+		return retainIf(key, predicate, this::getByte);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code false}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not a short
+	 */
+	public JSONObject retainShortIf(String key, Predicate<Short> predicate) {
+		return retainIf(key, predicate, this::getShort);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code false}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not an int
+	 */
+	public JSONObject retainIntIf(String key, Predicate<Integer> predicate) {
+		return retainIf(key, predicate, this::getInt);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code false}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not a long
+	 */
+	public JSONObject retainLongIf(String key, Predicate<Long> predicate) {
+		return retainIf(key, predicate, this::getLong);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code false}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not a float
+	 */
+	public JSONObject retainFloatIf(String key, Predicate<Float> predicate) {
+		return retainIf(key, predicate, this::getFloat);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code false}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not a double
+	 */
+	public JSONObject retainDoubleIf(String key, Predicate<Double> predicate) {
+		return retainIf(key, predicate, this::getDouble);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code false}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not a byte, or if the value does not fit into a byte
+	 */
+	public JSONObject retainByteExactIf(String key, Predicate<Byte> predicate) {
+		return retainIf(key, predicate, this::getByteExact);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code false}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not a short, or if the value does not fit into a short
+	 */
+	public JSONObject retainShortExactIf(String key, Predicate<Short> predicate) {
+		return retainIf(key, predicate, this::getShortExact);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code false}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not an int, or if the value does not fit into an int
+	 */
+	public JSONObject retainIntExactIf(String key, Predicate<Integer> predicate) {
+		return retainIf(key, predicate, this::getIntExact);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code false}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not a long, or if the value does not fit into a long
+	 */
+	public JSONObject retainLongExactIf(String key, Predicate<Long> predicate) {
+		return retainIf(key, predicate, this::getLongExact);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code false}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not a float, or if the value does not fit into a float
+	 */
+	public JSONObject retainFloatExactIf(String key, Predicate<Float> predicate) {
+		return retainIf(key, predicate, this::getFloatExact);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code false}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not a double, or if the value does not fit into a double
+	 */
+	public JSONObject retainDoubleExactIf(String key, Predicate<Double> predicate) {
+		return retainIf(key, predicate, this::getDoubleExact);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code false}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not a JSONObject
+	 */
+	public JSONObject retainObjectIf(String key, Predicate<JSONObject> predicate) {
+		return retainIf(key, predicate, this::getObject);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code false}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not a JSONArray
+	 */
+	public JSONObject retainArrayIf(String key, Predicate<JSONArray> predicate) {
+		return retainIf(key, predicate, this::getArray);
+	}
+	
+	/**
+	 * Removes a key from a JSONObject if the predicate returns {@code false}.
+	 * 
+	 * @param key the key
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the key does not exist, or if the value is not an instant
+	 */
+	public JSONObject retainInstantIf(String key, Predicate<Instant> predicate) {
+		return retainIf(key, predicate, this::getInstant);
+	}
+	
+	// -- RETAIN KEYS --
+
+	/**
+	 * Retains only the keys if the same key exists within the other JSONObject too.
+	 * <p>
+	 * This does not compare the values.
+	 * 
+	 * @param obj the other JSONObject
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 */
+	public JSONObject retainKeys(JSONObject obj) {
+		removeIf((key, value) -> !obj.has(key));
+		return this;
 	}
 	
 	// -- CHECK --
@@ -236,7 +820,7 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	public boolean has(String key) {
 		return values.containsKey(key);
 	}
-
+	
 	/**
 	 * Checks if the value with the specified key is {@code null}
 	 * 
@@ -271,7 +855,7 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	 */
 	public boolean isString(String key) {
 		Object value = checkKey(key);
-		return value instanceof String || value instanceof Instant;
+		return value instanceof String;
 	}
 
 	/**
@@ -284,7 +868,7 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	 */
 	public boolean isNumber(String key) {
 		Object value = checkKey(key);
-		return value instanceof Number || value instanceof Instant;
+		return value instanceof Number;
 	}
 
 	/**
@@ -312,16 +896,25 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	}
 
 	/**
-	 * Checks if the value with the specified key is an Instant
+	 * Checks if the value with the specified key can be converted to an {@link Instant}.
 	 * 
 	 * @param key the key
 	 * @return whether the value is an Instant
+	 * @see #parseInstant(Object)
 	 * @since 1.1.0
 	 * 
 	 * @throws JSONException if the key does not exist
 	 */
 	public boolean isInstant(String key) {
-		return checkKey(key) instanceof Instant;
+		Object val = checkKey(key);
+		
+		try {
+			parseInstant(val);
+			return true;
+		}
+		catch (Exception e) {
+			return false;
+		}
 	}
 	
 	// -- GET --
@@ -360,9 +953,6 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	 * @throws JSONException if the key does not exist, or if the value is not a string
 	 */
 	public String getString(String key) {
-		if(isInstant(key))
-			return getInstant(key).toString();
-		
 		return checkType(this::isString, key, "string");
 	}
 
@@ -583,16 +1173,23 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	}
 
 	/**
-	 * Returns the value as an Instant for a given key
+	 * Returns the value as an Instant for a given key.  
 	 * 
 	 * @param key the key
 	 * @return the Instant
+	 * @see #parseInstant(Object)
 	 * @since 1.1.0
 	 * 
 	 * @throws JSONException if the key does not exist, or if the value is not an Instant
 	 */
 	public Instant getInstant(String key) {
-		return checkType(this::isInstant, key, "instant");
+		Object val = checkKey(key);
+		
+		try {
+			return parseInstant(val);
+		} catch (Exception e) {
+			throw mismatch(key, "instant");
+		}
 	}
 	
 	// -- OPTIONAL --
@@ -762,6 +1359,7 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	public float getFloatExact(String key, float defaults) {
 		return getOpt(key, this::getFloatExact, defaults);
 	}
+	
 	/**
 	 * Returns the exact value as a double for a given key, or the default value if the operation is not possible
 	 * 
@@ -807,6 +1405,41 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 		return getOpt(key, this::getInstant, defaults);
 	}
 	
+	// -- PUT --
+
+	/**
+	 * Adds the values of the given JSONObject to this JSONObject.
+	 * Afterwards, changes in nested JSONObjects or JSONArrays of
+	 * one object are reflected in the other object too.  
+	 * <p>
+	 * This effectively shallow copies one JSONObject into another.
+	 * 
+	 * @param obj the other JSONObject
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 */
+	public JSONObject putAll(JSONObject obj) {
+		values.putAll(obj.values);
+		return this;
+	}
+
+	/**
+	 * Adds the values of the given JSONObject to this JSONObject.
+	 * For all nested JSONObjects and JSONArrays, {@link #deepCopy() deep copies} are created.
+	 * Afterwards, changes in nested JSONObjects or JSONArrays of
+	 * one object are <i>not</i> reflected in the other object.
+	 * <p>
+	 * This effectively deep copies one JSONObject into another.
+	 * 
+	 * @param obj the other JSONObject
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 */
+	public JSONObject putAllDeep(JSONObject obj) {
+		values.putAll(obj.deepCopy().values);
+		return this;
+	}
+	
 	// -- SET --
 	
 	/**
@@ -818,6 +1451,600 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	 */
 	public JSONObject set(String key, Object value) {
 		values.put(key, sanitize(value));
+		return this;
+	}
+
+	/**
+	 * Sets the value at a given key if there is
+	 * no value associated with the key yet
+	 * 
+	 * @param key the key
+	 * @param value the new value
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 */
+	public JSONObject setIfAbsent(String key, Object value) {
+		if(!has(key))
+			set(key, value);
+		
+		return this;
+	}
+
+	/**
+	 * Sets the value at a given key if there is
+	 * already a value associated with the key
+	 * 
+	 * @param key the key
+	 * @param value the new value
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 */
+	public JSONObject setIfPresent(String key, Object value) {
+		if(has(key))
+			set(key, value);
+		
+		return this;
+	}
+	
+	// -- COMPUTE --
+	
+	/**
+	 * Replaces or sets the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value,
+	 * or {@code null} if there is currently no value associated with the key.
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 */
+	public JSONObject compute(String key, BiFunction<String, Object, Object> remappingFunction) {
+		values.compute(key, remappingFunction);
+		return this;
+	}
+	
+	private <T> JSONObject compute(String key, BiFunction<String, T, Object> remappingFunction, Function<String, T> getter) {
+		T value = has(key) ? getter.apply(key) : null;
+		return set(key, remappingFunction.apply(key, value));
+	}
+	
+	/**
+	 * Replaces or sets the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as a boolean,
+	 * or {@code null} if there is currently no value associated with the key.
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not a boolean
+	 */
+	public JSONObject computeBoolean(String key, BiFunction<String, Boolean, Object> remappingFunction) {
+		return compute(key, remappingFunction, this::getBoolean);
+	}
+	
+	/**
+	 * Replaces or sets the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as a byte,
+	 * or {@code null} if there is currently no value associated with the key.
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not a byte
+	 */
+	public JSONObject computeByte(String key, BiFunction<String, Byte, Object> remappingFunction) {
+		return compute(key, remappingFunction, this::getByte);
+	}
+	
+	/**
+	 * Replaces or sets the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as a short,
+	 * or {@code null} if there is currently no value associated with the key.
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not a short
+	 */
+	public JSONObject computeShort(String key, BiFunction<String, Short, Object> remappingFunction) {
+		return compute(key, remappingFunction, this::getShort);
+	}
+	
+	/**
+	 * Replaces or sets the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as an int,
+	 * or {@code null} if there is currently no value associated with the key.
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not an int
+	 */
+	public JSONObject computeInt(String key, BiFunction<String, Integer, Object> remappingFunction) {
+		return compute(key, remappingFunction, this::getInt);
+	}
+	
+	/**
+	 * Replaces or sets the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as a long,
+	 * or {@code null} if there is currently no value associated with the key.
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not a long
+	 */
+	public JSONObject computeLong(String key, BiFunction<String, Long, Object> remappingFunction) {
+		return compute(key, remappingFunction, this::getLong);
+	}
+	
+	/**
+	 * Replaces or sets the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as a float,
+	 * or {@code null} if there is currently no value associated with the key.
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not a float
+	 */
+	public JSONObject computeFloat(String key, BiFunction<String, Float, Object> remappingFunction) {
+		return compute(key, remappingFunction, this::getFloat);
+	}
+	
+	/**
+	 * Replaces or sets the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as a double,
+	 * or {@code null} if there is currently no value associated with the key.
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not a double
+	 */
+	public JSONObject computeDouble(String key, BiFunction<String, Double, Object> remappingFunction) {
+		return compute(key, remappingFunction, this::getDouble);
+	}
+	
+	/**
+	 * Replaces or sets the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as a byte (exact value),
+	 * or {@code null} if there is currently no value associated with the key.
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not a byte, or if the value does not fit into a byte
+	 */
+	public JSONObject computeByteExact(String key, BiFunction<String, Byte, Object> remappingFunction) {
+		return compute(key, remappingFunction, this::getByteExact);
+	}
+	
+	/**
+	 * Replaces or sets the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as a short (exact value),
+	 * or {@code null} if there is currently no value associated with the key.
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not a short, or if the value does not fit into a short
+	 */
+	public JSONObject computeShortExact(String key, BiFunction<String, Short, Object> remappingFunction) {
+		return compute(key, remappingFunction, this::getShortExact);
+	}
+	
+	/**
+	 * Replaces or sets the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as an int (exact value),
+	 * or {@code null} if there is currently no value associated with the key.
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not an int, or if the value does not fit into an int
+	 */
+	public JSONObject computeIntExact(String key, BiFunction<String, Integer, Object> remappingFunction) {
+		return compute(key, remappingFunction, this::getIntExact);
+	}
+	
+	/**
+	 * Replaces or sets the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as a long (exact value),
+	 * or {@code null} if there is currently no value associated with the key.
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not a long, or if the value does not fit into a long
+	 */
+	public JSONObject computeLongExact(String key, BiFunction<String, Long, Object> remappingFunction) {
+		return compute(key, remappingFunction, this::getLongExact);
+	}
+	
+	/**
+	 * Replaces or sets the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as a float (exact value),
+	 * or {@code null} if there is currently no value associated with the key.
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not a float, or if the value does not fit into a float
+	 */
+	public JSONObject computeFloatExact(String key, BiFunction<String, Float, Object> remappingFunction) {
+		return compute(key, remappingFunction, this::getFloatExact);
+	}
+	
+	/**
+	 * Replaces or sets the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as a double (exact value),
+	 * or {@code null} if there is currently no value associated with the key.
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not a double, or if the value does not fit into a double
+	 */
+	public JSONObject computeDoubleExact(String key, BiFunction<String, Double, Object> remappingFunction) {
+		return compute(key, remappingFunction, this::getDoubleExact);
+	}
+	
+	/**
+	 * Replaces or sets the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as a JSONObject,
+	 * or {@code null} if there is currently no value associated with the key.
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not a JSONObject
+	 */
+	public JSONObject computeObject(String key, BiFunction<String, JSONObject, Object> remappingFunction) {
+		return compute(key, remappingFunction, this::getObject);
+	}
+	
+	/**
+	 * Replaces or sets the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as a JSONArray,
+	 * or {@code null} if there is currently no value associated with the key.
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not a JSONArray
+	 */
+	public JSONObject computeArray(String key, BiFunction<String, JSONArray, Object> remappingFunction) {
+		return compute(key, remappingFunction, this::getArray);
+	}
+	
+	/**
+	 * Replaces or sets the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as an instant,
+	 * or {@code null} if there is currently no value associated with the key.
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not an instant
+	 */
+	public JSONObject computeInstant(String key, BiFunction<String, Instant, Object> remappingFunction) {
+		return compute(key, remappingFunction, this::getInstant);
+	}
+	
+	// -- COMPUTE IF PRESENT --
+	
+	/**
+	 * Replaces the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value.
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 */
+	public JSONObject computeIfPresent(String key, BiFunction<String, Object, Object> remappingFunction) {
+		values.computeIfPresent(key, remappingFunction);
+		return this;
+	}
+	
+	private <T> JSONObject computeIfPresent(String key, BiFunction<String, T, Object> remappingFunction, Function<String, T> getter) {
+		if(!has(key))
+			return this;
+		
+		return set(key, remappingFunction.apply(key, getter.apply(key)));
+	}
+	
+	/**
+	 * Replaces the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as a boolean.
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not a boolean
+	 */
+	public JSONObject computeBooleanIfPresent(String key, BiFunction<String, Boolean, Object> remappingFunction) {
+		return computeIfPresent(key, remappingFunction, this::getBoolean);
+	}
+	
+	/**
+	 * Replaces the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as a byte.
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not a byte
+	 */
+	public JSONObject computeByteIfPresent(String key, BiFunction<String, Byte, Object> remappingFunction) {
+		return computeIfPresent(key, remappingFunction, this::getByte);
+	}
+	
+	/**
+	 * Replaces the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as a short.
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not a short
+	 */
+	public JSONObject computeShortIfPresent(String key, BiFunction<String, Short, Object> remappingFunction) {
+		return computeIfPresent(key, remappingFunction, this::getShort);
+	}
+	
+	/**
+	 * Replaces the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as an int.
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not an int
+	 */
+	public JSONObject computeIntIfPresent(String key, BiFunction<String, Integer, Object> remappingFunction) {
+		return computeIfPresent(key, remappingFunction, this::getInt);
+	}
+	
+	/**
+	 * Replaces the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as a long.
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not a long
+	 */
+	public JSONObject computeLongIfPresent(String key, BiFunction<String, Long, Object> remappingFunction) {
+		return computeIfPresent(key, remappingFunction, this::getLong);
+	}
+	
+	/**
+	 * Replaces the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as a float.
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not a float
+	 */
+	public JSONObject computeFloatIfPresent(String key, BiFunction<String, Float, Object> remappingFunction) {
+		return computeIfPresent(key, remappingFunction, this::getFloat);
+	}
+	
+	/**
+	 * Replaces the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as a double.
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not a double
+	 */
+	public JSONObject computeDoubleIfPresent(String key, BiFunction<String, Double, Object> remappingFunction) {
+		return computeIfPresent(key, remappingFunction, this::getDouble);
+	}
+	
+	/**
+	 * Replaces the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as a byte (exact value).
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not a byte, or if the value does not fit into a byte
+	 */
+	public JSONObject computeByteExactIfPresent(String key, BiFunction<String, Byte, Object> remappingFunction) {
+		return computeIfPresent(key, remappingFunction, this::getByteExact);
+	}
+	
+	/**
+	 * Replaces the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as a short (exact value).
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not a short, or if the value does not fit into a short
+	 */
+	public JSONObject computeShortExactIfPresent(String key, BiFunction<String, Short, Object> remappingFunction) {
+		return computeIfPresent(key, remappingFunction, this::getShortExact);
+	}
+	
+	/**
+	 * Replaces the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as an int (exact value).
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not an int, or if the value does not fit into an int
+	 */
+	public JSONObject computeIntExactIfPresent(String key, BiFunction<String, Integer, Object> remappingFunction) {
+		return computeIfPresent(key, remappingFunction, this::getIntExact);
+	}
+	
+	/**
+	 * Replaces the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as a long (exact value).
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not a long, or if the value does not fit into a long
+	 */
+	public JSONObject computeLongExactIfPresent(String key, BiFunction<String, Long, Object> remappingFunction) {
+		return computeIfPresent(key, remappingFunction, this::getLongExact);
+	}
+	
+	/**
+	 * Replaces the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as a float (exact value).
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not a float, or if the value does not fit into a float
+	 */
+	public JSONObject computeFloatExactIfPresent(String key, BiFunction<String, Float, Object> remappingFunction) {
+		return computeIfPresent(key, remappingFunction, this::getFloatExact);
+	}
+	
+	/**
+	 * Replaces the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as a double (exact value).
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not a double, or if the value does not fit into a double
+	 */
+	public JSONObject computeDoubleExactIfPresent(String key, BiFunction<String, Double, Object> remappingFunction) {
+		return computeIfPresent(key, remappingFunction, this::getDoubleExact);
+	}
+	
+	/**
+	 * Replaces the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as a JSONObject.
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not a JSONObject
+	 */
+	public JSONObject computeObjectIfPresent(String key, BiFunction<String, JSONObject, Object> remappingFunction) {
+		return computeIfPresent(key, remappingFunction, this::getObject);
+	}
+	
+	/**
+	 * Replaces the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as a JSONArray.
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not a JSONArray
+	 */
+	public JSONObject computeArrayIfPresent(String key, BiFunction<String, JSONArray, Object> remappingFunction) {
+		return computeIfPresent(key, remappingFunction, this::getArray);
+	}
+	
+	/**
+	 * Replaces the value associated with the given key with the value returned by the remapping function.
+	 * <p>
+	 * The remapping function receives the key and its associated value as an instant.
+	 * 
+	 * @param key the key
+	 * @param remappingFunction the remapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 * @throws JSONException if the value is not an instant
+	 */
+	public JSONObject computeInstantIfPresent(String key, BiFunction<String, Instant, Object> remappingFunction) {
+		return computeIfPresent(key, remappingFunction, this::getInstant);
+	}
+	
+	// -- COMPUTE IF ABSENT --
+
+	/**
+	 * Associates the value returned by the mapping function with the given key if the key is not already associated with a value.
+	 * <p>
+	 * The mapping function receives the key.
+	 * 
+	 * @param key the key
+	 * @param mappingFunction the mapping function
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 */
+	public JSONObject computeIfAbsent(String key, Function<String, Object> mappingFunction) {
+		if(!has(key))
+			set(key, mappingFunction.apply(key));
+		
 		return this;
 	}
 	
@@ -886,6 +2113,41 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	
 	private static JSONException mismatch(String key, String type) {
 		return new JSONException("JSONObject[" + JSONStringify.quote(key) +"] is not of type " + type);
+	}
+
+	/**
+	 * Tries to convert an object to an Instant.
+	 * <p>
+	 * In order for the conversion to succeed, the value must be either
+	 * <ul>
+	 *  <li>an {@link Instant},</li>
+	 * 	<li>a String formatted according to <a href="https://datatracker.ietf.org/doc/html/rfc3339#section-5.6">RFC 3339, Section 5.6</a>, or</li>
+	 *  <li>an integer (primitive type or {@link BigInteger}) that does not exceed the limits of {@link Instant#ofEpochSecond(long)}</li>
+	 * </ul>
+	 * 
+	 * @param value the value
+	 * @return the parsed Instant
+	 * @see #isInstant(String)
+	 * 
+	 * @throws DateTimeException if the value is malformed or out of range
+	 * @throws JSONException if the value has an invalid type
+	 */
+	public static Instant parseInstant(Object value) {
+		if(value instanceof Instant)
+			return (Instant) value;
+		
+		if(value instanceof Byte || value instanceof Short || value instanceof Integer || value instanceof Long)
+			return Instant.ofEpochSecond((long) value);
+		
+		if(value instanceof BigInteger)
+			return Instant.ofEpochSecond(((BigInteger) value).longValueExact());
+		
+		if(value instanceof String)
+			return Instant.parse((String) value);
+		
+		String className = value == null ? "null" : value.getClass().getSimpleName();
+		
+		throw new JSONException(className + " cannot be converted to Instant");
 	}
 	
 	/**

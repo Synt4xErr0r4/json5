@@ -30,8 +30,6 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.time.Instant;
-import java.util.regex.Pattern;
 
 /**
  * A JSONParser is used to convert a source string into tokens, which then are used to 
@@ -40,23 +38,6 @@ import java.util.regex.Pattern;
  * @author SyntaxError404
  */
 public class JSONParser {
-	
-	private static final Pattern PATTERN_BOOLEAN = Pattern.compile(
-		"true|false"
-	);
-
-	private static final Pattern PATTERN_NUMBER_FLOAT = Pattern.compile(
-		"[+-]?((0|[1-9]\\d*)(\\.\\d*)?|\\.\\d+)([eE][+-]?\\d+)?"
-	);
-	private static final Pattern PATTERN_NUMBER_INTEGER = Pattern.compile(
-		"[+-]?(0|[1-9]\\d*)"
-	);
-	private static final Pattern PATTERN_NUMBER_HEX = Pattern.compile(
-		"[+-]?0[xX][0-9a-fA-F]+"
-	);
-	private static final Pattern PATTERN_NUMBER_SPECIAL = Pattern.compile(
-		"[+-]?(Infinity|NaN)"
-	);
 	
 	private final Reader reader;
 	protected final JSONOptions options;
@@ -336,42 +317,35 @@ public class JSONParser {
 		
 		return result.toString();
 	}
-	
-	private int dehex(char c) {
-		if(c >= '0' && c <= '9')
-			return c - '0';
 
-		if(c >= 'a' && c <= 'f')
-			return c - 'a' + 0xA;
+	private char[] unicodeEscape(boolean member, boolean part, boolean utf32) {
+		if(utf32 && !options.isAllowLongUnicodeEscapes())
+			throw syntaxError("Long unicode escape sequences are not allowed");
 		
-		if(c >= 'A' && c <= 'F')
-			return c - 'A' + 0xA;
-		
-		return -1;
-	}
-
-	private char unicodeEscape(boolean member, boolean part) {
 		String where = member ? "key" : "string";
+		String escChar = utf32 ? "U" : "u";
 		
 		String value = "";
 		int codepoint = 0;
 		
-		for(int i = 0; i < 4; ++i) {
+		int numDigits = utf32 ? 8 : 4;
+		
+		for(int i = 0; i < numDigits; ++i) {
 			char n = next();
 			value += n;
 			
 			int hex = dehex(n);
 			
 			if(hex == -1)
-				throw syntaxError("Illegal unicode escape sequence '\\u" + value + "' in " + where);
+				throw syntaxError("Illegal unicode escape sequence '\\" + escChar + value + "' in " + where);
 			
-			codepoint |= hex << ((3 - i) << 2);
+			codepoint |= hex << ((numDigits - i - 1) << 2);
 		}
 		
 		if(member && !isMemberNameChar((char) codepoint, part))
-			throw syntaxError("Illegal unicode escape sequence '\\u" + value + "' in key");
+			throw syntaxError("Illegal unicode escape sequence '\\" + escChar + value + "' in key");
 		
-		return (char) codepoint;
+		return Character.toChars(codepoint);
 	}
 	
 	private void checkSurrogate(char hi, char lo) {
@@ -475,8 +449,19 @@ public class JSONParser {
 					n = (char) codepoint;
 					break;
 					
-				case 'u': // Unicode escape sequence
-					n = unicodeEscape(false, false);
+				case 'u': // Unicode escape sequence (16-bit)
+				case 'U': // Unicode escape sequence (32-bit)
+					char[] chars = unicodeEscape(false, false, n == 'U');
+					
+					if(chars.length == 2) {
+						checkSurrogate(prev, chars[0]);
+						prev = chars[0];
+						n = chars[1];
+
+						result.append(prev);
+					}
+					else n = chars[0];
+					
 					break;
 				
 				default:
@@ -552,10 +537,19 @@ public class JSONParser {
 			if(n == '\\') { // unicode escape sequence
 				n = next();
 				
-				if(n != 'u')
+				if(n != 'u' && n != 'U')
 					throw syntaxError("Illegal escape sequence '\\" + n + "' in key");
 				
-				n = unicodeEscape(true, part);
+				char[] chars = unicodeEscape(true, part, n == 'U');
+				
+				if(chars.length == 2) {
+					checkSurrogate(prev, chars[0]);
+					prev = chars[0];
+					n = chars[1];
+					
+					result.append(prev);
+				}
+				else n = chars[0];
 			}
 			else if(!isMemberNameChar(n, part)) {
 				back();
@@ -586,14 +580,7 @@ public class JSONParser {
 		switch(n) {
 		case '"':
 		case '\'':
-			String string = nextString(n);
-			
-			if(options.isParseInstants() && options.isParseStringInstants())
-				try {
-					return Instant.parse(string);
-				} catch (Exception e) { }
-			
-			return string;
+			return nextString(n);
 		case '{':
 			back();
 			return new JSONObject(this);
@@ -609,99 +596,381 @@ public class JSONParser {
 		if(string.equals("null"))
 			return null;
 		
-		if(PATTERN_BOOLEAN.matcher(string).matches())
-			return string.equals("true");
+		if(string.equals("true"))
+			return true;
 		
-		if(PATTERN_NUMBER_INTEGER.matcher(string).matches()) {
-			BigInteger bigint = new BigInteger(string);
-
-			if(options.isParseInstants() && options.isParseUnixInstants())
-				try {
-					long unix = bigint.longValueExact();
-					
-					return Instant.ofEpochSecond(unix);
-				} catch (Exception e) { }
-			
-			return bigint;
-		}
+		if(string.equals("false"))
+			return false;
 		
-		if(PATTERN_NUMBER_FLOAT.matcher(string).matches())
-			return new BigDecimal(string);
-		
-		if(PATTERN_NUMBER_SPECIAL.matcher(string).matches()) {
-			String special;
+		if(!string.isEmpty()) {
+			char leading = string.charAt(0);
+			String rest = string;
 			
-			int factor;
-			double d = 0;
+			double sign = 1;
 			
-			switch(string.charAt(0)) { // +, -, or 0
-			case '+':
-				special = string.substring(1); // +
-				factor = 1;
-				break;
-			
-			case '-':
-				special = string.substring(1); // -
-				factor = -1;
-				break;
-			
-			default:
-				special = string;
-				factor = 1;
-				break;
+			if(leading == '+') {
+				rest = string.substring(1);
+			}
+			else if(leading == '-') {
+				rest = string.substring(1);
+				sign = -1;
 			}
 			
-			switch(special) {
-			case "NaN":
-				if(!options.isAllowNaN())
-					throw syntaxError("NaN is not allowed");
-				
-				d = Double.NaN;
-				break;
-			case "Infinity":
+			if(rest.equals("Infinity")) {
 				if(!options.isAllowInfinity())
 					throw syntaxError("Infinity is not allowed");
 				
-				d = Double.POSITIVE_INFINITY;
-				break;
+				return Math.copySign(Double.POSITIVE_INFINITY, sign);
+			}
+
+			if(rest.equals("NaN")) {
+				if(!options.isAllowNaN())
+					throw syntaxError("NaN is not allowed");
+				
+				return Math.copySign(Double.NaN, sign);
 			}
 			
-			return factor * d;
-		}
-		
-		if(PATTERN_NUMBER_HEX.matcher(string).matches()) {
-			String hex;
-			
-			int factor;
-			
-			switch(string.charAt(0)) { // +, -, or 0
-			case '+':
-				hex = string.substring(3); // +0x
-				factor = 1;
-				break;
-			
-			case '-':
-				hex = string.substring(3); // -0x
-				factor = -1;
-				break;
-			
-			default:
-				hex = string.substring(2); // 0x
-				factor = 1;
-				break;
+			if(!rest.isEmpty()) {
+				leading = rest.charAt(0);
+				
+				if((leading >= '0' && leading <= '9') || leading == '.') {
+					Number num = parseNumber(leading, rest);
+					
+					if(num != null) {
+						if(sign < 0) {
+							if(num instanceof BigInteger)
+								return ((BigInteger) num).negate();
+
+							if(num instanceof BigDecimal)
+								return ((BigDecimal) num).negate();
+						}
+
+						return num;
+					}
+				}
 			}
-			
-			BigInteger bigint = new BigInteger(hex, 16);
-			
-			if(factor == -1)
-				return bigint.negate();
-			
-			return bigint;
 		}
 		
 		throw new JSONException("Illegal value '" + string + "'");
 	}
 
+	private Number parseNumber(char leading, String input) {
+		BigInteger intValue = BigInteger.ZERO;
+		
+		int n = input.length();
+		boolean floating = false;
+		boolean hex = false;
+		int off = 0;
+		char c = 0;
+		
+		if(leading == '0') {
+			if(n == 1)
+				return intValue;
+			
+			/************
+			 * PREFIXES *
+			 ************/
+			switch(c = input.charAt(1)) {
+				/**********
+				 * BINARY *
+				 **********/
+			case 'b':
+			case 'B':
+				if(!options.isAllowBinaryLiterals())
+					throw syntaxError("Binary literals are not allowed");
+				
+				off = 2;
+				
+				while(off < n) {
+					c = input.charAt(off++);
+					
+					if(checkDigitSeparator(c)) {
+						if(off == 3 || off >= n || !isbin(input.charAt(off)))
+							throw syntaxError("Illegal position for digit separator");
+						
+						continue;
+					}
+					
+					if(!isbin(c))
+						throw syntaxError("Expected binary digit for literal");
+					
+					intValue = intValue.shiftLeft(1);
+					
+					if(c == '1')
+						intValue = intValue.setBit(0);
+				}
+				
+				if(off == 2)
+					throw syntaxError("Expected binary digit after '0b'");
+				
+				return intValue;
+					
+				/*********
+				 * OCTAL *
+				 *********/
+			case 'o':
+			case 'O':
+				if(!options.isAllowOctalLiterals())
+					throw syntaxError("Octal literals are not allowed");
+				
+				off = 2;
+				
+				while(off < n) {
+					c = input.charAt(off++);
+
+					if(checkDigitSeparator(c)) {
+						if(off == 3 || off >= n || !isoct(input.charAt(off)))
+							throw syntaxError("Illegal position for digit separator");
+						
+						continue;
+					}
+					
+					if(!isoct(c))
+						throw syntaxError("Expected octal digit for literal");
+					
+					intValue = intValue.shiftLeft(3);
+					
+					if(c != '0')
+						intValue = intValue.or(BigInteger.valueOf(c - '0'));
+				}
+				
+				if(off == 2)
+					throw syntaxError("Expected octal digit after '0o'");
+				
+				return intValue;
+				
+
+				/***************
+				 * HEXADECIMAL *
+				 ***************/
+			case 'x':
+			case 'X':
+				off = 2;
+				hex = true;
+				
+				while(off < n) {
+					c = input.charAt(off++);
+
+					if(checkDigitSeparator(c)) {
+						if(off == 3 || off >= n || !ishex(input.charAt(off)))
+							throw syntaxError("Illegal position for digit separator");
+						
+						continue;
+					}
+					
+					if(c == '.' || c == 'p' || c == 'P') {
+						if(!options.isAllowHexFloatingLiterals())
+							throw syntaxError("Hexadecimal floating-point literals are not allowed");
+						
+						floating = true;
+						break;
+					}
+					
+					if(!ishex(c))
+						throw syntaxError("Expected hexadecimal digit for literal");
+					
+					intValue = intValue.shiftLeft(4);
+					
+					if(c != '0')
+						intValue = intValue.or(BigInteger.valueOf(dehex(c)));
+				}
+				
+				if(off == 2)
+					throw syntaxError("Expected hexadecimal digit after '0x'");
+				
+				if(!floating)
+					return intValue;
+				
+				break;
+				
+			default:
+				break;
+			};
+		}
+
+		StringBuilder num = new StringBuilder();
+		
+		if(!hex) {
+			/***********
+			 * DECIMAL *
+			 ***********/
+			while(off < n) {
+				c = input.charAt(off++);
+
+				if(checkDigitSeparator(c)) {
+					if(num.length() == 0 || off >= n || !isDecimalDigit(input.charAt(off)))
+						throw syntaxError("Illegal position for digit separator");
+					
+					continue;
+				}
+				
+				if(c == '.' || c == 'e' || c == 'E') {
+					floating = true;
+					break;
+				}
+
+				if(!isDecimalDigit(c))
+					throw syntaxError("Expected decimal digit for literal");
+				
+				num.append(c);
+			}
+			
+			if(off >= n) {
+				if(options.isAllowJavaDigitSeparators())
+					input = input.replace("_", "");
+
+				if(options.isAllowCDigitSeparators())
+					input = input.replace("'", "");
+				
+				return new BigInteger(input);
+			}
+		}
+		
+		BigInteger fractionInt = BigInteger.ZERO;
+		int numFracDigits = 0;
+		
+		if(c == '.') {
+			/************
+			 * FRACTION *
+			 ************/
+			if(!hex)
+				num.append('.');
+			
+			while(off < n) {
+				c = input.charAt(off++);
+
+				if(checkDigitSeparator(c)) {
+					if(numFracDigits == 0 || off >= n)
+						throw syntaxError("Illegal position for digit separator");
+					
+					c = input.charAt(off);
+					
+					if((!hex && !isDecimalDigit(c)) || (hex && !ishex(c)))
+						throw syntaxError("Illegal position for digit separator");
+					
+					continue;
+				}
+				
+				if(hex) {
+					if(c == 'p' || c == 'P')
+						break;
+					
+					if(!ishex(c))
+						throw syntaxError("Expected hexadecimal digit for literal");
+					
+					fractionInt = fractionInt.shiftLeft(4);
+					
+					if(c != '0')
+						fractionInt = fractionInt.or(BigInteger.valueOf(dehex(c)));
+				}
+				else {
+					if(c == 'e' || c == 'E')
+						break;
+					
+					if(!isDecimalDigit(c))
+						throw syntaxError("Expected decimal digit for literal");
+					
+					num.append(c);
+				}
+				
+				++numFracDigits;
+			}
+			
+			if(off >= n && !hex)
+				return new BigDecimal(num.toString());
+		}
+
+		/************
+		 * EXPONENT *
+		 ************/
+		if(hex && c != 'p' && c != 'P')
+			throw syntaxError("Expected exponent for hexadecimal floating-point literal");
+
+		if(!hex)
+			num.append('e');
+		
+		int numExpDigits = 0;
+		
+		if(++off >= n)
+			throw syntaxError("Expected digit sequence for exponent");
+
+		c = input.charAt(off);
+		
+		if(c == '+' || c == '-') {
+			num.append(c);
+			++off;
+		}
+		
+		while(off < n) {
+			c = input.charAt(off++);
+
+			if(checkDigitSeparator(c)) {
+				if(numExpDigits == 0 || off >= n || !isDecimalDigit(input.charAt(off)))
+					throw syntaxError("Illegal position for digit separator");
+				
+				continue;
+			}
+			
+			if(!isDecimalDigit(c))
+				throw syntaxError("Expected decimal digit for exponent");
+			
+			num.append(c);
+			++numExpDigits;
+		}
+		
+		if(numExpDigits == 0)
+			throw syntaxError("Expected digit sequence for exponent");
+		
+		if(!hex)
+			return new BigDecimal(num.toString());
+
+		/******************************
+		 * HEXADECIMAL FLOATING-POINT *
+		 ******************************/
+		BigInteger exponent = new BigInteger(num.toString());
+		BigDecimal value = new BigDecimal(intValue);
+		
+		BigDecimal two = BigDecimal.valueOf(2);
+		BigDecimal frac = BigDecimal.valueOf(.5);
+		
+		for(int i = (4 * numFracDigits) - 1; i >= 0; --i) {
+			if(fractionInt.testBit(i)) {
+				value = value.add(frac);
+			}
+			
+			frac = frac.divide(two);
+		}
+		
+		BigDecimal scale;
+		
+		try {
+			scale = new BigDecimal(BigInteger.TWO.pow(exponent.intValueExact()));
+		}
+		catch (Exception e) {
+			throw syntaxError("Hexadecimal floating-point literal's exponent is too large");
+		}
+		
+		return value.multiply(scale);
+	}
+	
+	private boolean checkDigitSeparator(char c) {
+		if(c == '_') {
+			if(!options.isAllowJavaDigitSeparators())
+				throw syntaxError("Java-style digit separators are not allowed");
+			
+			return true;
+		}
+		
+		if(c == '\'') {
+			if(!options.isAllowCDigitSeparators())
+				throw syntaxError("C-style digit separators are not allowed");
+			
+			return true;
+		}
+		
+		return false;
+	}
+	
 	/**
 	 * Constructs a new JSONException with a detail message and a causing exception
 	 * 
@@ -726,6 +995,33 @@ public class JSONParser {
 	@Override
 	public String toString() {
 		return " at index " + index + " [character " + character + " in line " + line + "]";
+	}
+	
+	private static int dehex(char c) {
+		if(c >= '0' && c <= '9')
+			return c - '0';
+
+		if(c >= 'a' && c <= 'f')
+			return c - 'a' + 0xA;
+		
+		if(c >= 'A' && c <= 'F')
+			return c - 'A' + 0xA;
+		
+		return -1;
+	}
+	
+	private static boolean isbin(char c) {
+		return c == '0' || c == '1';
+	}
+	
+	private static boolean isoct(char c) {
+		return c >= '0' && c <= '7';
+	}
+	
+	private static boolean ishex(char c) {
+		return (c >= '0' && c <= '9')
+			|| (c >= 'a' && c <= 'f')
+			|| (c >= 'A' && c <= 'F');
 	}
 	
 }

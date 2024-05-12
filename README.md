@@ -10,7 +10,7 @@ This is a reference implementation, capable of parsing JSON5 data according to t
 
 ## Getting started
 
-In order to use the code, you can either [download the jar](https://github.com/Synt4xErr0r4/json5/releases/download/1.3.0/json5-1.3.0.jar), or use the Maven dependency:
+In order to use the code, you can either [download the jar](https://github.com/Synt4xErr0r4/json5/releases/download/2.0.0/json5-2.0.0.jar), or use the Maven dependency:
 
 ```xml
 <!-- Repository -->
@@ -25,7 +25,7 @@ In order to use the code, you can either [download the jar](https://github.com/S
 <dependency>
   <groupId>at.syntaxerror</groupId>
   <artifactId>json5</artifactId>
-  <version>1.3.0</version>
+  <version>2.0.0</version>
 </dependency>
 ```
 
@@ -209,6 +209,53 @@ When the behavior is `DUPLICATE`, the snippet above is effectively equal to the 
   ]
 }
 ```
+
+### v2.0.0
+
+- the `JSONParser` no longer uses regular expressions for parsing
+- removed options `parseInstants`, `parseStringInstants` and `parseUnixInstants` from `JSONOptions`.
+  - you can still use `getInstant(...)` in `JSONObject` and `JSONArray`, but the instant will
+    now be parsed dynamically rather than when the full JSON is parsed.
+  - furthermore, you can still add `Instant`s to `JSONObject`s and `JSONArray`s and use the `stringifyUnixInstants` option
+- added options to `JSONOptions`:
+  - `allowBinaryLiterals`: (default `false`, *Parser-only*)  
+    Allows the use of binary literals (prefixed with `0b` or `0B`) for integers
+  - `allowOctalLiterals`: (default `false`, *Parser-only*)
+    Allows the use of octal literals (prefixed with `0o` or `0O`) for integers
+  - `allowHexFloatingLiterals`: (default `false`, *Parser-only*)  
+    Allows the use of hexadecimal floating-point notationi (e.g. `0xA.BCp+12`) for floating-point numbers
+  - `allowJavaDigitSeparators`: (default `false`, *Parser-only*)  
+    Allows the use of Java's `_` digit separators (e.g. `123_456` for `123456`) for integers and floating-point numbers.
+  - `allowCDigitSeparators`: (default `false`, *Parser-only*)  
+    Allows the use of C23's `'` digit separators (e.g. `123'456` for `123456`) for integers and floating-point numbers.
+  - `allowLongUnicodeEscapes`: (default `false`, *Parser-only*)  
+    Allows the use of 32-bit unicode escape sequences (e.g. `\U0001F642` for `🙂`)
+  - `stringifyAscii`: (default `false`, *Stringify-only*)  
+    Ensures that the stringifyed JSON is always valid ASCII by replacing non-ASCII characters with their UTF-16 unicode escape sequence.
+- added methods to create shallow (`copy`) and deep copies (`deepCopy`) of `JSONObject`s and `JSONArray`s
+- added an additional `forEach` method to `JSONObject`, which takes a `BiConsumer<String, Object>` rather than a `Consumer<Map.Entry<String, Object>>`
+- added an additional `forEach` method to `JSONArray`, which takes a `BiConsumer<Integer, Object>` rather than a `Consumer<Object>`
+- added `removeIf` methods to `JSONObject` and `JSONArray`, which take a `BiPredicate<String, Object>` or `BiPredicate<Integer, Object>` and remove all
+  the entries where the predicate returns `true`.
+- added `retainIf` methods to `JSONObject` and `JSONArray`, which take a `BiPredicate<String, Object>` or `BiPredicate<Integer, Object>` and retain only
+  the entries where the predicate returns `true`.
+- added `removeIf(String, Predicate<Object>)` and `removeXIf(String, Predicate<X>)` methods to `JSONObject`, which removes the value associated with the
+  given key if the predicate returns `true`.
+- added `retainIf(String, Predicate<Object>)` and `retainXIf(String, Predicate<X>)` methods to `JSONObject`, which retains the value associated with the
+  given key only if the predicate returns `true`.
+- added `removeKeys(JSONObject)` method to `JSONObject`, which removes every key that also exists in the given `JSONObject`
+- added `retainKeys(JSONObject)` method to `JSONObject`, which retains only the keys that also exist in the given `JSONObject`
+- added `putAll(JSONObject)` method to `JSONObject`, which copies (shadow copy) all values of the given `JSONObject` to the target object
+- added `putAllDeep(JSONObject)` method to `JSONObject`, which copies (deep copy) all values of the given `JSONObject` to the target object
+- added `setIfAbsent(String, Object)` and `setIfPresent(String, Object)` methods to `JSONObject`, which sets the value only if the key is either absent or present, respectively.
+- added `compute`, `computeX`, `computeIfAbsent`, `computeXIfAbsent`, `computeIfPresent`, `computeXIfPresent` methods to `JSONObject`, which sets the
+  value returned by the (re)mapping function either unconditionally, if the key is absent, or if the key is present, respectively.
+- added `sublist` and `deepSublist` methods to `JSONArray`, which copies (shallow or deep copy, respectively) part of the `JSONArray` to a new `JSONArray`.
+- added `removeAll` and `retainAll` methods to `JSONArray`, which remove all or retain only common values of the `JSONArray`s.
+- added `addAll(JSONArray)` method to `JSONArray`, which copies (shadow copy) all values of the given `JSONArray` to the target array.
+- added `addAllDeep(JSONArray)` method to `JSONArray`, which copies (deep copy) all values of the given `JSONArray` to the target array.
+
+Note regarding digit separators: Digit separators may neither occur next to each other, nor at the beginning nor the end of a literal. They can also be used within binary/octal/hexadecimal and hexadecimal floating-point literals.
 
 ## Documentation
 

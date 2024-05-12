@@ -30,6 +30,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -99,6 +101,90 @@ public class JSONArray implements Iterable<Object> {
 		}
 	}
 	
+	// -- COPY --
+	
+	/**
+	 * Creates a shallow copy of part of the JSONArray.
+	 * <p>
+	 * {@code array.sublist(0, array.length())} is equivalent to
+	 * {@code array.copy()}.
+	 * 
+     * @param fromIndex low endpoint (inclusive) of the subList
+     * @param toIndex high endpoint (exclusive) of the subList
+	 * @return the new JSONArray
+	 * @since 2.0.0
+     * @throws IndexOutOfBoundsException {@code fromIndex < 0 || toIndex > size || fromIndex > toIndex}
+	 */
+	public JSONArray sublist(int fromIndex, int toIndex) {
+		JSONArray copy = new JSONArray();
+		copy.values.addAll(values.subList(fromIndex, toIndex));
+		
+		return copy;
+	}
+	
+	/**
+	 * Creates a deep copy of part of the JSONArray.
+	 * <p>
+	 * {@code array.deepSublist(0, array.length())} is equivalent to
+	 * {@code array.deepCopy()}.
+	 * 
+     * @param fromIndex low endpoint (inclusive) of the subList
+     * @param toIndex high endpoint (exclusive) of the subList
+	 * @return the new JSONArray
+	 * @since 2.0.0
+     * @throws IndexOutOfBoundsException {@code fromIndex < 0 || toIndex > size || fromIndex > toIndex}
+	 */
+	public JSONArray deepSublist(int fromIndex, int toIndex) {
+		JSONArray copy = new JSONArray();
+		
+		for(Object value : values.subList(fromIndex, toIndex)) {
+			if(value instanceof JSONArray)
+				value = ((JSONArray) value).deepCopy();
+			
+			else if(value instanceof JSONObject)
+				value = ((JSONObject) value).deepCopy();
+			
+			copy.values.add(value);
+		}
+		
+		return copy;
+	}
+	
+	/**
+	 * Creates a shallow copy of the JSONArray
+	 * 
+	 * @return the new JSONArray
+	 * @since 2.0.0
+	 */
+	public JSONArray copy() {
+		JSONArray copy = new JSONArray();
+		copy.values.addAll(values);
+		
+		return copy;
+	}
+	
+	/**
+	 * Creates a deep copy of the JSONArray
+	 * 
+	 * @return the new JSONArray
+	 * @since 2.0.0
+	 */
+	public JSONArray deepCopy() {
+		JSONArray copy = new JSONArray();
+		
+		for(Object value : values) {
+			if(value instanceof JSONArray)
+				value = ((JSONArray) value).deepCopy();
+			
+			else if(value instanceof JSONObject)
+				value = ((JSONObject) value).deepCopy();
+			
+			copy.values.add(value);
+		}
+		
+		return copy;
+	}
+	
 	//
 	
 	/**
@@ -126,10 +212,12 @@ public class JSONArray implements Iterable<Object> {
 	
 	/**
      * Returns a collection of values of the JSONArray.
-     * Modifying the collection will modify the JSONArray
-     *
-     * Use with caution.
-     *
+     * Modifying the collection will modify the JSONArray.
+     * 
+     * <p>
+     * Use with caution. Inserting objects of unknown types
+     * may cause issues when trying to use the JSONArray
+     * 
      * @return a set of entries
      */
 	public Collection<Object> entrySet() {
@@ -139,6 +227,21 @@ public class JSONArray implements Iterable<Object> {
 	@Override
 	public Iterator<Object> iterator() {
 		return values.iterator();
+	}
+	
+	/**
+     * Iterates over the whole JSONArray and performs the given action for each element.
+     * <p>
+	 * For each entry in the array, the consumer receives the index and its associated value. 
+	 * 
+	 * @param action The action for each entry
+	 * @since 2.0.0
+	 */
+	public void forEach(BiConsumer<Integer, Object> action) {
+		int index = 0;
+		
+		for(Object obj : this)
+			action.accept(index++, obj);
 	}
 	
 	/**
@@ -170,6 +273,70 @@ public class JSONArray implements Iterable<Object> {
 	public void remove(int index) {
 		checkIndex(index);
 		values.remove(index);
+	}
+	
+	// -- REMOVE --
+	
+	/**
+	 * Removes all entries from the JSONArray where the predicate returns {@code true}.
+	 * <p>
+	 * For each entry in the array, the predicate receives the index and its associated value. 
+	 * 
+	 * @param predicate the predicate
+	 * @return this JSONArray
+	 * @since 2.0.0
+	 */
+	public JSONArray removeIf(BiPredicate<Integer, Object> predicate) {
+		Iterator<Object> iter = values.iterator();
+		int index = 0;
+		
+		while(iter.hasNext()) {
+			Object value = iter.next();
+			
+			if(predicate.test(index++, value))
+				iter.remove();
+		}
+		
+		return this;
+	}
+	
+	/**
+	 * Removes all entries from the JSONArray where there is the same value in the other JSONArray. 
+	 * 
+	 * @param arr the other JSONArray
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 */
+	public JSONArray removeAll(JSONArray arr) {
+		values.removeAll(arr.values);
+		return this;
+	}
+	
+	// -- RETAIN --
+	
+	/**
+	 * Removes all entries from the JSONArray where the predicate returns {@code false}.
+	 * <p>
+	 * For each entry in the array, the predicate receives the index and its associated value. 
+	 * 
+	 * @param predicate the predicate
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 */
+	public JSONArray retainIf(BiPredicate<Integer, Object> predicate) {
+		return removeIf(predicate.negate());
+	}
+	
+	/**
+	 * Removes all entries from the JSONArray where there is no such value in the other JSONArray. 
+	 * 
+	 * @param arr the other JSONArray
+	 * @return this JSONObject
+	 * @since 2.0.0
+	 */
+	public JSONArray retainAll(JSONArray arr) {
+		values.retainAll(arr.values);
+		return this;
 	}
 	
 	// -- CHECK --
@@ -208,7 +375,7 @@ public class JSONArray implements Iterable<Object> {
 	 */
 	public boolean isString(int index) {
 		Object value = checkIndex(index);
-		return value instanceof String || value instanceof Instant;
+		return value instanceof String;
 	}
 
 	/**
@@ -221,7 +388,7 @@ public class JSONArray implements Iterable<Object> {
 	 */
 	public boolean isNumber(int index) {
 		Object value = checkIndex(index);
-		return value instanceof Number || value instanceof Instant;
+		return value instanceof Number;
 	}
 
 	/**
@@ -253,12 +420,21 @@ public class JSONArray implements Iterable<Object> {
 	 * 
 	 * @param index the index
 	 * @return whether the value is an Instant
+	 * @see JSONObject#parseInstant(Object)
 	 * @since 1.1.0
 	 * 
 	 * @throws JSONException if the index does not exist
 	 */
 	public boolean isInstant(int index) {
-		return checkIndex(index) instanceof Instant;
+		Object val = checkIndex(index);
+		
+		try {
+			JSONObject.parseInstant(val);
+			return true;
+		}
+		catch (Exception e) {
+			return false;
+		}
 	}
 	
 	// -- GET --
@@ -384,7 +560,6 @@ public class JSONArray implements Iterable<Object> {
 		Number number = getNumber(index);
 		
 		try {
-			
 			if(number instanceof BigInteger)
 				return bigint.apply((BigInteger) number);
 
@@ -519,12 +694,19 @@ public class JSONArray implements Iterable<Object> {
 	 * 
 	 * @param index the index
 	 * @return the Instant
+	 * @see JSONObject#parseInstant(Object)
 	 * @since 1.1.0
 	 * 
 	 * @throws JSONException if the index does not exist, or if the value is not an Instant
 	 */
 	public Instant getInstant(int index) {
-		return checkType(this::isInstant, index, "instant");
+		Object val = checkIndex(index);
+		
+		try {
+			return JSONObject.parseInstant(val);
+		} catch (Exception e) {
+			throw mismatch(index, "instant");
+		}
 	}
 	
 	// -- OPTIONAL --
@@ -591,6 +773,7 @@ public class JSONArray implements Iterable<Object> {
 	public byte getByte(int index, byte defaults) {
 		return getOpt(index, this::getByte, defaults);
 	}
+	
 	/**
 	 * Returns the value as a short for a given index, or the default value if the operation is not possible
 	 * 
@@ -601,6 +784,7 @@ public class JSONArray implements Iterable<Object> {
 	public short getShort(int index, short defaults) {
 		return getOpt(index, this::getShort, defaults);
 	}
+	
 	/**
 	 * Returns the value as an int for a given index, or the default value if the operation is not possible
 	 * 
@@ -611,6 +795,7 @@ public class JSONArray implements Iterable<Object> {
 	public int getInt(int index, int defaults) {
 		return getOpt(index, this::getInt, defaults);
 	}
+	
 	/**
 	 * Returns the value as a long for a given index, or the default value if the operation is not possible
 	 * 
@@ -632,6 +817,7 @@ public class JSONArray implements Iterable<Object> {
 	public float getFloat(int index, float defaults) {
 		return getOpt(index, this::getFloat, defaults);
 	}
+	
 	/**
 	 * Returns the value as a double for a given index, or the default value if the operation is not possible
 	 * 
@@ -653,6 +839,7 @@ public class JSONArray implements Iterable<Object> {
 	public byte getByteExact(int index, byte defaults) {
 		return getOpt(index, this::getByteExact, defaults);
 	}
+	
 	/**
 	 * Returns the exact value as a short for a given index, or the default value if the operation is not possible
 	 * 
@@ -663,6 +850,7 @@ public class JSONArray implements Iterable<Object> {
 	public short getShortExact(int index, short defaults) {
 		return getOpt(index, this::getShortExact, defaults);
 	}
+	
 	/**
 	 * Returns the exact value as an int for a given index, or the default value if the operation is not possible
 	 * 
@@ -673,6 +861,7 @@ public class JSONArray implements Iterable<Object> {
 	public int getIntExact(int index, int defaults) {
 		return getOpt(index, this::getIntExact, defaults);
 	}
+	
 	/**
 	 * Returns the exact value as a long for a given index, or the default value if the operation is not possible
 	 * 
@@ -694,6 +883,7 @@ public class JSONArray implements Iterable<Object> {
 	public float getFloatExact(int index, float defaults) {
 		return getOpt(index, this::getFloatExact, defaults);
 	}
+	
 	/**
 	 * Returns the exact value as a double for a given index, or the default value if the operation is not possible
 	 * 
@@ -749,6 +939,39 @@ public class JSONArray implements Iterable<Object> {
 	 */
 	public JSONArray add(Object value) {
 		values.add(JSONObject.sanitize(value));
+		return this;
+	}
+	
+	/**
+	 * Adds the values of the given JSONArray to this JSONArray.
+	 * Afterwards, changes in nested JSONObjects or JSONArrays of
+	 * one array are reflected in the other array too.  
+	 * <p>
+	 * This effectively shallow copies one JSONArray into another.
+	 * 
+	 * @param arr the other JSONArray
+	 * @return this JSONArray
+	 * @since 2.0.0
+	 */
+	public JSONArray addAll(JSONArray arr) {
+		values.addAll(arr.values);
+		return this;
+	}
+
+	/**
+	 * Adds the value of the given JSONArray to this JSONArray.
+	 * For all nested JSONObjects and JSONArrays, {@link #deepCopy() deep copies} are created.
+	 * Afterwards, changes in nested JSONObjects or JSONArrays of
+	 * one array are <i>not</i> reflected in the other array.
+	 * <p>
+	 * This effectively deep copies one JSONArray into another.
+	 * 
+	 * @param arr the other JSONArray
+	 * @return this JSONArray
+	 * @since 2.0.0
+	 */
+	public JSONArray addAllDeep(JSONArray arr) {
+		values.addAll(arr.deepCopy().values);
 		return this;
 	}
 	

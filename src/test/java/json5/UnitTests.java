@@ -23,9 +23,7 @@
  */
 package json5;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.Instant;
 
@@ -48,8 +46,21 @@ class UnitTests {
 	
 	@BeforeAll
 	static void setUpBeforeClass() throws Exception {
-		// compile regex patterns
-		JSONParser.class.toString();
+	}
+	
+	JSONOptions allowAllFeatures() {
+		JSONOptions opts = JSONOptions.builder()
+			.allowBinaryLiterals(true)
+			.allowOctalLiterals(true)
+			.allowHexFloatingLiterals(true)
+			.allowCDigitSeparators(true)
+			.allowJavaDigitSeparators(true)
+			.allowLongUnicodeEscapes(true)
+			.build();
+		
+		JSONOptions.setDefaultOptions(opts);
+		
+		return opts;
 	}
 	
 	@Test
@@ -95,9 +106,9 @@ class UnitTests {
 		json.set("d", new JSONObject());
 		json.set("e", new JSONArray());
 		json.set("f", Double.NaN);
-		json.set("g", 123e+45);
+		json.set("g", -123e+45);
 		json.set("h", (float) -123e45);
-		json.set("i", 123L);
+		json.set("i", -123L);
 		json.set("j", "Lorem Ipsum");
 		json.set("k", Instant.now());
 		
@@ -143,21 +154,19 @@ class UnitTests {
 	/** @since 1.1.0 */
 	@Test
 	void testInstant() {
-		assertTrue(
-			parse("{a:1338150759534}")
+		assertFalse(
+			parse("{a: -9223372036854775808}")
 				.isInstant("a")
 		);
 		
-		assertEquals(
-			parse("{a:1338150759534}")
-				.getLong("a"),
-			1338150759534L
+		assertTrue(
+			parse("{a: 1338150759534}")
+				.isInstant("a")
 		);
 		
-		assertEquals(
-			parse("{a:'2001-09-09T01:46:40Z'}")
-				.getString("a"),
-			"2001-09-09T01:46:40Z"
+		assertTrue(
+			parse("{a: '2001-09-09T01:46:40Z'}")
+				.isInstant("a")
 		);
 	}
 	
@@ -221,7 +230,7 @@ class UnitTests {
 			)
 		);
 	}
-
+	
 	/** @since 1.3.0 */
 	@Test
 	void testDuplicateUnique() {
@@ -234,7 +243,7 @@ class UnitTests {
 			)
 		);
 	}
-	
+
 	@Test
 	void testDuplicateLastValueWins() {
 		assertEquals(
@@ -249,7 +258,7 @@ class UnitTests {
 			789
 		);
 	}
-	
+
 	@Test
 	void testDuplicateDuplicate() {
 		assertEquals(
@@ -269,5 +278,123 @@ class UnitTests {
 				.toString()
 		);
 	}
-	
+
+	/** @since 2.0.0 */
+	@Test
+	void testParseLiterals() {
+		allowAllFeatures();
+		
+		JSONObject obj = new JSONObject("{bin: 0B10101010101, oct: 0o1234567, hex: 0x12cafeBEEF, fhex: 0xAA.BBp+10, sep: 123_456'789}");
+		
+		assertEquals(obj.getLong("bin"), 0b10101010101);
+		assertEquals(obj.getLong("oct"), 01234567);
+		assertEquals(obj.getLong("hex"), 0x12cafeBEEFL);
+		assertEquals(obj.getDouble("fhex"), 0xAA.BBp+10);
+		assertEquals(obj.getLong("sep"), 123456789L);
+	}
+
+	/** @since 2.0.0 */
+	@Test
+	void testParseInvalidLiterals() {
+		allowAllFeatures();
+		
+		assertThrows(
+			JSONException.class,
+			() -> new JSONObject("{a: 0b1010102}") // invalid binary digit '2'
+		);
+		
+		assertThrows(
+			JSONException.class,
+			() -> new JSONObject("{a: 0o12345678}") // invalid octal digit '8'
+		);
+		
+		assertThrows(
+			JSONException.class,
+			() -> new JSONObject("{a: 0xabcdefg}") // invalid hex digit 'g'
+		);
+		
+		assertThrows(
+			JSONException.class,
+			() -> new JSONObject("{a: 12345abc}") // trailing junk
+		);
+		
+		assertThrows(
+			JSONException.class,
+			() -> new JSONObject("{a: 0x0.0e0}") // wrong exponent char for hexadecimal floating-point literals
+		);
+		
+		assertThrows(
+			JSONException.class,
+			() -> new JSONObject("{a: 0x0.0}") // missing exponent for hexadecimal floating-point literals
+		);
+		
+		assertThrows(
+			JSONException.class,
+			() -> new JSONObject("{a: 0o_123}") // illegal digit sep at start
+		);
+		
+		assertThrows(
+			JSONException.class,
+			() -> new JSONObject("{a: _123}") // illegal digit sep at start
+		);
+		
+		assertThrows(
+			JSONException.class,
+			() -> new JSONObject("{a: 123_}") // illegal digit sep at end
+		);
+		
+		assertThrows(
+			JSONException.class,
+			() -> new JSONObject("{a: 123._123}") // illegal digit sep in the middle
+		);
+	}
+
+	/** @since 2.0.0 */
+	@Test
+	void testUTF32Escapes() {
+		allowAllFeatures();
+		
+		assertTrue(
+			parse("{ a: '\\U0001F642\\U0001F41B' }")
+				.getString("a")
+				.equals("🙂🐛")
+		);
+	}
+
+	/** @since 2.0.0 */
+	@Test
+	void testLineContinuation() {
+		allowAllFeatures();
+		
+		assertTrue(
+			parse("{ a: 'abcdef\\\nghijklmn' }")
+				.getString("a")
+				.equals("abcdefghijklmn")
+		);
+		
+		assertTrue(
+			parse("{ a: 'abcdef\\\r\nghijklmn' }")
+				.getString("a")
+				.equals("abcdefghijklmn")
+		);
+		
+		assertTrue(
+			parse("{ a: 'abcdef\\\rghijklmn' }")
+				.getString("a")
+				.equals("abcdefghijklmn")
+		);
+		
+		assertTrue(
+			parse("{ a: 'abcdef\\\n\\\n\\\nghijklmn' }")
+				.getString("a")
+				.equals("abcdefghijklmn")
+		);
+		
+		assertTrue(
+			parse("{ a: 'abcdef\\\n\\\r\n\\\r\\\r\\\r\n\\\n\\\rghijklmn' }")
+				.getString("a")
+				.equals("abcdefghijklmn")
+		);
+	}
+
 }

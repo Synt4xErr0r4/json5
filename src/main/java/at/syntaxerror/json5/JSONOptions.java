@@ -63,55 +63,6 @@ public class JSONOptions {
 	private static JSONOptions defaultOptions = builder().build();
 	
 	/**
-	 * Whether instants should be parsed as such.
-	 * If this is {@code false}, {@link #isParseStringInstants()} and {@link #isParseUnixInstants()}
-	 * are ignored
-	 * <p>
-	 * Default: {@code true}
-	 * <p>
-	 * <i>This is a {@link JSONParser Parser}-only option</i>
-	 * 
-	 * @param parseInstants a boolean
-	 * 
-	 * @return whether instants should be parsed
-	 * @since 1.1.0
-	 */
-	@Builder.Default
-	boolean parseInstants = true;
-	/**
-	 * Whether string instants (according to 
-	 * <a href="https://datatracker.ietf.org/doc/html/rfc3339#section-5.6">RFC 3339, Section 5.6</a>)
-	 * should be parsed as such.
-	 * Ignored if {@link #isParseInstants()} is {@code false}
-	 * <p>
-	 * Default: {@code true}
-	 * <p>
-	 * <i>This is a {@link JSONParser Parser}-only option</i>
-	 * 
-	 * @param parseStringInstants a boolean
-	 * 
-	 * @return whether string instants should be parsed
-	 * @since 1.1.0
-	 */
-	@Builder.Default
-	boolean parseStringInstants = true;
-	/**
-	 * Whether unix instants (integers) should be parsed as such.
-	 * Ignored if {@link #isParseInstants()} is {@code false}
-	 * <p>
-	 * Default: {@code true}
-	 * <p>
-	 * <i>This is a {@link JSONParser Parser}-only option</i>
-	 * 
-	 * @param parseUnixInstants a boolean
-	 * 
-	 * @return whether unix instants should be parsed
-	 * @since 1.1.0
-	 */
-	@Builder.Default
-	boolean parseUnixInstants = true;
-	
-	/**
 	 * Whether instants should be stringifyed as unix timestamps.
 	 * If this is {@code false}, instants will be stringifyed as strings
 	 * (according to <a href="https://datatracker.ietf.org/doc/html/rfc3339#section-5.6">RFC 3339, Section 5.6</a>).
@@ -127,6 +78,23 @@ public class JSONOptions {
 	 */
 	@Builder.Default
 	boolean stringifyUnixInstants = false;
+	
+	/**
+	 * Whether stringifying should only yield ASCII strings.
+	 * All non-ASCII characters will be converted to their
+	 * Unicode escape sequence (<code>&#92;uXXXX</code>).
+	 * <p>
+	 * Default: {@code false}
+	 * <p>
+	 * <i>This is a {@link JSONStringify Stringify}-only option</i>
+	 * 
+	 * @param stringifyAscii a boolean
+	 * 
+	 * @return whether stringifying should only yield ASCII strings
+	 * @since 2.0.0
+	 */
+	@Builder.Default
+	boolean stringifyAscii = false;
 	
 	/**
 	 * Whether {@code NaN} should be allowed as a number
@@ -185,6 +153,96 @@ public class JSONOptions {
 	 */
 	@Builder.Default
 	boolean quoteSingle = false;
+	
+	/**
+	 * Whether binary literals ({@code 0b10101...}) should be allowed
+	 * <p>
+	 * Default: {@code false}
+	 * <p>
+	 * <i>This is a {@link JSONParser Parser}-only option</i>
+	 * 
+	 * @param allowBinaryLiterals a boolean
+	 * 
+	 * @return whether binary literals should be allowed
+	 * @since 2.0.0
+	 */
+	@Builder.Default
+	boolean allowBinaryLiterals = false;
+	
+	/**
+	 * Whether octal literals ({@code 0o567...}) should be allowed
+	 * <p>
+	 * Default: {@code false}
+	 * <p>
+	 * <i>This is a {@link JSONParser Parser}-only option</i>
+	 * 
+	 * @param allowOctalLiterals a boolean
+	 * 
+	 * @return whether octal literals should be allowed
+	 * @since 2.0.0
+	 */
+	@Builder.Default
+	boolean allowOctalLiterals = false;
+	
+	/**
+	 * Whether hexadecimal floating-point literals (e.g. {@code 0xA.BCp+12}) should be allowed
+	 * <p>
+	 * Default: {@code false}
+	 * <p>
+	 * <i>This is a {@link JSONParser Parser}-only option</i>
+	 * 
+	 * @param allowHexFloatingLiterals a boolean
+	 * 
+	 * @return whether octal literals should be allowed
+	 * @since 2.0.0
+	 */
+	@Builder.Default
+	boolean allowHexFloatingLiterals = false;
+	
+	/**
+	 * Whether Java-style digit separators ({@code 123_456}) should be allowed
+	 * <p>
+	 * Default: {@code false}
+	 * <p>
+	 * <i>This is a {@link JSONParser Parser}-only option</i>
+	 * 
+	 * @param allowJavaDigitSeparators a boolean
+	 * 
+	 * @return whether Java-style digit separators should be allowed
+	 * @since 2.0.0
+	 */
+	@Builder.Default
+	boolean allowJavaDigitSeparators = false;
+	
+	/**
+	 * Whether C-style digit separators ({@code 123'456}) should be allowed
+	 * <p>
+	 * Default: {@code false}
+	 * <p>
+	 * <i>This is a {@link JSONParser Parser}-only option</i>
+	 * 
+	 * @param allowCDigitSeparators a boolean
+	 * 
+	 * @return whether C-style digit separators should be allowed
+	 * @since 2.0.0
+	 */
+	@Builder.Default
+	boolean allowCDigitSeparators = false;
+	
+	/**
+	 * Whether 32-bit unicode escape sequences ({@code \U00123456}) should be allowed
+	 * <p>
+	 * Default: {@code false}
+	 * <p>
+	 * <i>This is a {@link JSONParser Parser}-only option</i>
+	 * 
+	 * @param allowLongUnicodeEscapes a boolean
+	 * 
+	 * @return whether 32-bit unicode escape sequences should be allowed
+	 * @since 2.0.0
+	 */
+	@Builder.Default
+	boolean allowLongUnicodeEscapes = false;
 	
 	/**
 	 * Specifies the behavior when the same key is encountered multiple times within the same {@link JSONObject}

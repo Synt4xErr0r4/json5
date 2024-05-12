@@ -26,6 +26,8 @@ package at.syntaxerror.json5;
 import java.time.Instant;
 import java.util.Map;
 
+import lombok.experimental.UtilityClass;
+
 /**
  * A utility class for serializing {@link JSONObject JSONObjects} and
  * {@link JSONArray JSONArrays} into their string representations
@@ -33,11 +35,8 @@ import java.util.Map;
  * @author SyntaxError404
  * 
  */
+@UtilityClass
 public class JSONStringify {
-
-	private JSONStringify() {
-		throw new UnsupportedOperationException("Utility class");
-	}
 
 	/**
 	 * Converts a JSONObject into its string representation.
@@ -285,6 +284,7 @@ public class JSONStringify {
 		final char qt = options.isQuoteSingle() ? '\'' : '"';
 		
 		StringBuilder quoted = new StringBuilder(string.length() + 2);
+		boolean ascii = options.isStringifyAscii();
 		
 		quoted.append(qt);
 		
@@ -318,22 +318,31 @@ public class JSONStringify {
 				quoted.append("\\v");
 				break;
 			default:
-				 // escape non-graphical characters (https://www.unicode.org/versions/Unicode13.0.0/ch02.pdf#G286941)
-				switch(Character.getType(c)) {
-				case Character.FORMAT:
-				case Character.LINE_SEPARATOR:
-				case Character.PARAGRAPH_SEPARATOR:
-				case Character.CONTROL:
-				case Character.PRIVATE_USE:
-				case Character.SURROGATE:
-				case Character.UNASSIGNED:
+				boolean unicode = false;
+				
+				if(!ascii) {
+					 // escape non-graphical characters (https://www.unicode.org/versions/Unicode13.0.0/ch02.pdf#G286941)
+					switch(Character.getType(c)) {
+					case Character.FORMAT:
+					case Character.LINE_SEPARATOR:
+					case Character.PARAGRAPH_SEPARATOR:
+					case Character.CONTROL:
+					case Character.PRIVATE_USE:
+					case Character.SURROGATE:
+					case Character.UNASSIGNED:
+						unicode = true;
+						break;
+					default:
+						break;
+					}
+				}
+				else unicode = c > 0x7F;
+				
+				if(unicode) {
 					quoted.append("\\u");
 					quoted.append(String.format("%04X", (int) c));
-					break;
-				default:
-					quoted.append(c);
-					break;
 				}
+				else quoted.append(c);
 			}
 		}
 		
