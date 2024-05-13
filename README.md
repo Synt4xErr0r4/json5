@@ -245,14 +245,14 @@ When the behavior is `DUPLICATE`, the snippet above is effectively equal to the 
   given key only if the predicate returns `true`.
 - added `removeKeys(JSONObject)` method to `JSONObject`, which removes every key that also exists in the given `JSONObject`
 - added `retainKeys(JSONObject)` method to `JSONObject`, which retains only the keys that also exist in the given `JSONObject`
-- added `putAll(JSONObject)` method to `JSONObject`, which copies (shadow copy) all values of the given `JSONObject` to the target object
+- added `putAll(JSONObject)` method to `JSONObject`, which copies (shallow copy) all values of the given `JSONObject` to the target object
 - added `putAllDeep(JSONObject)` method to `JSONObject`, which copies (deep copy) all values of the given `JSONObject` to the target object
 - added `setIfAbsent(String, Object)` and `setIfPresent(String, Object)` methods to `JSONObject`, which sets the value only if the key is either absent or present, respectively.
 - added `compute`, `computeX`, `computeIfAbsent`, `computeXIfAbsent`, `computeIfPresent`, `computeXIfPresent` methods to `JSONObject`, which sets the
   value returned by the (re)mapping function either unconditionally, if the key is absent, or if the key is present, respectively.
 - added `sublist` and `deepSublist` methods to `JSONArray`, which copies (shallow or deep copy, respectively) part of the `JSONArray` to a new `JSONArray`.
 - added `removeAll` and `retainAll` methods to `JSONArray`, which remove all or retain only common values of the `JSONArray`s.
-- added `addAll(JSONArray)` method to `JSONArray`, which copies (shadow copy) all values of the given `JSONArray` to the target array.
+- added `addAll(JSONArray)` method to `JSONArray`, which copies (shallow copy) all values of the given `JSONArray` to the target array.
 - added `addAllDeep(JSONArray)` method to `JSONArray`, which copies (deep copy) all values of the given `JSONArray` to the target array.
 
 Note regarding digit separators: Digit separators may neither occur next to each other, nor at the beginning nor the end of a literal. They can also be used within binary/octal/hexadecimal and hexadecimal floating-point literals.
