@@ -12,6 +12,8 @@ This is a reference implementation, capable of parsing JSON5 data according to t
 
 In order to use the code, you can either [download the jar](https://github.com/Synt4xErr0r4/json5/releases/download/2.0.0/json5-2.0.0.jar), or use the Maven dependency:
 
+*Note:* Starting with version 2.0.0, the Maven dependency is now also available from [Maven Central](https://central.sonatype.com/artifact/at.syntaxerror/json5/2.0.0).
+
 ```xml
 <!-- Repository -->
 

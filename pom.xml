@@ -1,12 +1,15 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>at.syntaxerror</groupId>
 	<artifactId>json5</artifactId>
 	<version>2.0.0</version>
 	<packaging>jar</packaging>
-	
+
 	<name>JSON5 for Java</name>
 	<description>A JSON5 Library for Java</description>
+	<url>https://github.com/Synt4xErr0r4/json5</url>
 
 	<licenses>
 		<license>
@@ -15,7 +18,7 @@
 			<distribution>repo</distribution>
 		</license>
 	</licenses>
-	
+
 	<developers>
 		<developer>
 			<id>syntaxerror404</id>
@@ -25,36 +28,35 @@
 			<timezone>Europe/Vienna</timezone>
 		</developer>
 	</developers>
-	
+
 	<scm>
 		<connection>scm:git:git://github.com/Synt4xErr0r4/json5.git</connection>
 		<url>http://github.com/Synt4xErr0r4/json5</url>
 	</scm>
-	
+
 	<issueManagement>
 		<system>GitHub Issues</system>
 		<url>https://github.com/Synt4xErr0r4/json5/issues</url>
 	</issueManagement>
-	
+
 	<build>
 		<sourceDirectory>src/main/java</sourceDirectory>
-	
 		<plugins>
 			<plugin>
-		    	<groupId>org.projectlombok</groupId>
-	    		<artifactId>lombok-maven-plugin</artifactId>
-    			<version>1.18.20.0</version>
-    			<configuration>
-    				<encoding>UTF-8</encoding>
-    				<sourceDirectory>src/main/java</sourceDirectory>
-    				<outputDirectory>target/delombok</outputDirectory>
-    			</configuration>
-		    </plugin>
+				<groupId>org.projectlombok</groupId>
+				<artifactId>lombok-maven-plugin</artifactId>
+				<version>1.18.20.0</version>
+				<configuration>
+					<encoding>UTF-8</encoding>
+					<sourceDirectory>src/main/java</sourceDirectory>
+					<outputDirectory>target/delombok</outputDirectory>
+					<addOutputDirectory>false</addOutputDirectory>
+				</configuration>
+			</plugin>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.8.1</version>
 				<configuration>
-					<source>target/delombok</source>
 					<release>11</release>
 					<compilerArgs></compilerArgs>
 					<annotationProcessorPaths>
@@ -71,6 +73,7 @@
 				<version>3.3.0</version>
 				<executions>
 					<execution>
+						<phase>package</phase>
 						<goals>
 							<goal>aggregate-jar</goal>
 						</goals>
@@ -91,24 +94,38 @@
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-gpg-plugin</artifactId>
+				<version>1.5</version>
+				<executions>
+					<execution>
+						<id>sign-artifacts</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>sign</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
-	    <extensions>
-	    	<extension>
-	    		<groupId>org.apache.maven.wagon</groupId>
-	    		<artifactId>wagon-ftp</artifactId>
-	    		<version>3.2.0</version>
-	      	</extension>
-	    </extensions>
+		<extensions>
+			<extension>
+				<groupId>org.apache.maven.wagon</groupId>
+				<artifactId>wagon-ftp</artifactId>
+				<version>3.2.0</version>
+			</extension>
+		</extensions>
 	</build>
-	
+
 	<dependencies>
 		<dependency>
-		    <groupId>org.junit.jupiter</groupId>
-		    <artifactId>junit-jupiter-api</artifactId>
-		    <version>5.7.2</version>
-		    <scope>test</scope>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-api</artifactId>
+			<version>5.7.2</version>
+			<scope>test</scope>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
@@ -116,11 +133,47 @@
 			<scope>provided</scope>
 		</dependency>
 	</dependencies>
-	
-	<distributionManagement>
-  		<repository>
-			<id>syntaxerror.at</id>
-			<url>${env.FTP_URL}</url>
- 		</repository>
-  	</distributionManagement>
+
+	<profiles>
+		<profile>
+			<id>repo-syntaxerror</id>
+			<distributionManagement>
+				<repository>
+					<id>syntaxerror.at</id>
+					<url>${env.FTP_URL}</url>
+				</repository>
+			</distributionManagement>
+		</profile>
+		<profile>
+			<id>repo-central</id>
+			<distributionManagement>
+				<snapshotRepository>
+					<id>ossrh</id>
+					<url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+				</snapshotRepository>
+				<repository>
+					<id>ossrh</id>
+					<url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+				</repository>
+			</distributionManagement>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.sonatype.central</groupId>
+						<artifactId>central-publishing-maven-plugin</artifactId>
+						<version>0.4.0</version>
+						<extensions>true</extensions>
+						<configuration>
+							<publishingServerId>central</publishingServerId>
+							<tokenAuth>true</tokenAuth>
+							<autoPublish>true</autoPublish>
+							<waitUntil>uploaded</waitUntil>
+							<checksums>all</checksums>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+
 </project>
