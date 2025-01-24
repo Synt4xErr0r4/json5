@@ -10,9 +10,9 @@ This is a reference implementation, capable of parsing JSON5 data according to t
 
 ## Getting started
 
-In order to use the code, you can either [download the jar](https://github.com/Synt4xErr0r4/json5/releases/download/2.0.0/json5-2.0.0.jar), or use the Maven dependency:
+In order to use the code, you can either [download the jar](https://github.com/Synt4xErr0r4/json5/releases/download/2.1.0/json5-2.1.0.jar), or use the Maven dependency:
 
-*Note:* Starting with version 2.0.0, the Maven dependency is now also available from [Maven Central](https://central.sonatype.com/artifact/at.syntaxerror/json5/2.0.0).
+*Note:* Starting with version 2.0.0, the Maven dependency is now also available from [Maven Central](https://central.sonatype.com/artifact/at.syntaxerror/json5/2.1.0).
 
 ```xml
 <!-- Repository -->
@@ -27,7 +27,7 @@ In order to use the code, you can either [download the jar](https://github.com/S
 <dependency>
   <groupId>at.syntaxerror</groupId>
   <artifactId>json5</artifactId>
-  <version>2.0.0</version>
+  <version>2.1.0</version>
 </dependency>
 ```
 
@@ -258,6 +258,14 @@ When the behavior is `DUPLICATE`, the snippet above is effectively equal to the 
 - added `addAllDeep(JSONArray)` method to `JSONArray`, which copies (deep copy) all values of the given `JSONArray` to the target array.
 
 Note regarding digit separators: Digit separators may neither occur next to each other, nor at the beginning nor the end of a literal. They can also be used within binary/octal/hexadecimal and hexadecimal floating-point literals.
+
+### v2.1.0
+
+- `JSONObject`s now store entries in the order they were added ([#7](https://github.com/Synt4xErr0r4/json5/issues/7))
+- added option `allowTrailingData` (*Parser-only*, default `false`):
+  - if `true`, trailing data after a JSON object or array (e.g. `abc` in `{ }abc`) will be ignored
+  - otherwise, an exception will be thrown
+- various small improvements ([#7](https://github.com/Synt4xErr0r4/json5/issues/7), [#8](https://github.com/Synt4xErr0r4/json5/issues/8), [#9](https://github.com/Synt4xErr0r4/json5/issues/9))
 
 ## Documentation
 

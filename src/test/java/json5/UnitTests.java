@@ -397,4 +397,81 @@ class UnitTests {
 		);
 	}
 
+	/** @since 2.1.0 */
+	@Test
+	void testFailure() {
+		assertThrows(JSONException.class, () -> parse("{"));
+		assertThrows(JSONException.class, () -> parse("{ a"));
+		assertThrows(JSONException.class, () -> parse("{ a: \"abc"));
+		assertThrows(JSONException.class, () -> parse("{ a: \"abc\""));
+		assertThrows(JSONException.class, () -> parse("{ a: \"abc\", "));
+		assertThrows(JSONException.class, () -> parse("{ a: \"abc\", b: ["));
+		assertThrows(JSONException.class, () -> parse("{ a: \"abc\", b: [ 0x"));
+		assertThrows(JSONException.class, () -> parse("{ a: \"abc\", b: [ 0x123 ]"));
+		assertThrows(JSONException.class, () -> parse("{ a: \"abc\", b: [ 0x123 ],"));
+		assertThrows(JSONException.class, () -> parse("{ : 123 }"));
+		assertThrows(JSONException.class, () -> parse("{ '': }"));
+	}
+
+	/** @since 2.1.0 */
+	@Test
+	void testTrailing() {
+		assertThrows(
+			JSONException.class,
+			() -> new JSONObject(
+				new JSONParser(
+					"{ }abc",
+					JSONOptions.builder()
+						.allowTrailingData(false)
+						.build()
+				)
+			)
+		);
+		
+		assertThrows(
+			JSONException.class,
+			() -> new JSONObject(
+				new JSONParser(
+					"{ }   \t \r    \n abc",
+					JSONOptions.builder()
+						.allowTrailingData(false)
+						.build()
+				)
+			)
+		);
+		
+		assertDoesNotThrow(
+			() -> new JSONObject(
+				new JSONParser(
+					"{ }    \t		\r	  \n  ",
+					JSONOptions.builder()
+						.allowTrailingData(false)
+						.build()
+				)
+			)
+		);
+		
+		assertDoesNotThrow(
+			() -> new JSONObject(
+				new JSONParser(
+					"{ }abc",
+					JSONOptions.builder()
+						.allowTrailingData(true)
+						.build()
+				)
+			)
+		);
+	}
+
+	/** @since 2.1.0 */
+	@Test
+	void testOrder() {
+		JSONObject json = parse("{ c: 0, b: 1, a: 2 }");
+		var iter = json.iterator();
+		
+		assertEquals(iter.next().getKey(), "c");
+		assertEquals(iter.next().getKey(), "b");
+		assertEquals(iter.next().getKey(), "a");
+	}
+
 }

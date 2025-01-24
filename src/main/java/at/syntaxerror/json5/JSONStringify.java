@@ -288,7 +288,9 @@ public class JSONStringify {
 		
 		quoted.append(qt);
 		
-		for(char c : string.toCharArray()) {
+		for(int i = 0, n = string.length(); i < n; ++i) {
+			char c = string.charAt(i);
+			
 			if(c == qt) {
 				quoted.append('\\');
 				quoted.append(c);

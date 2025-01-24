@@ -41,6 +41,9 @@ public class JSONParser {
 	
 	private final Reader reader;
 	protected final JSONOptions options;
+	
+	/** whether we're currently parsing the root object/array */
+	protected boolean root = true;
 
 	/** whether the end of the file has been reached */
 	private boolean eof;
@@ -273,7 +276,7 @@ public class JSONParser {
 	public char nextClean() {
 		while(true) {
 			if(!more())
-				throw syntaxError("Unexpected end of data");
+				return 0;
 			
 			char n = next();
 			
@@ -302,10 +305,10 @@ public class JSONParser {
 		StringBuilder result = new StringBuilder();
 		
 		while(true) {
-			if(!more())
-				throw syntaxError("Unexpected end of data");
-			
 			char n = nextClean();
+			
+			if(n == 0)
+				return null;
 			
 			if(delimiters.indexOf(n) > -1 || isWhitespace(n)) {
 				back();
@@ -372,7 +375,7 @@ public class JSONParser {
 		
 		while(true) {
 			if(!more())
-				throw syntaxError("Unexpected end of data");
+				throw syntaxError("Expected '" + quote + "' to close string, got EOF instead");
 			
 			prev = n;
 			n = next();
@@ -397,6 +400,9 @@ public class JSONParser {
 				}
 				
 				else switch(n) {
+				case 0:
+					throw syntaxError("Expected escape sequence in string, got EOF instead");
+				
 				case '\'':
 				case '"':
 				case '\\':
@@ -436,6 +442,10 @@ public class JSONParser {
 					
 					for(int i = 0; i < 2; ++i) {
 						n = next();
+						
+						if(n == 0)
+							throw syntaxError("Expected hexadecimal digit for hexadecimal escape sequence in string, got EOF instead");
+						
 						value += n;
 						
 						int hex = dehex(n);
@@ -519,16 +529,16 @@ public class JSONParser {
 		char prev;
 		char n = next();
 		
+		if(n == 0)
+			throw syntaxError("Expected key, got EOF instead");
+		
 		if(n == '"' || n == '\'')
 			return nextString(n);
 
 		back();
 		n = 0;
 		
-		while(true) {
-			if(!more())
-				throw syntaxError("Unexpected end of data");
-
+		do {
 			boolean part = result.length() > 0;
 			
 			prev = n;
@@ -536,6 +546,9 @@ public class JSONParser {
 			
 			if(n == '\\') { // unicode escape sequence
 				n = next();
+
+				if(n == 0)
+					throw syntaxError("Expected escape sequence in key, got EOF instead");
 				
 				if(n != 'u' && n != 'U')
 					throw syntaxError("Illegal escape sequence '\\" + n + "' in key");
@@ -560,10 +573,10 @@ public class JSONParser {
 			checkSurrogate(prev, n);
 			
 			result.append(n);
-		}
+		} while(more());
 		
 		if(result.length() == 0)
-			throw syntaxError("Empty key");
+			throw syntaxError("Expected key");
 		
 		return result.toString();
 	}
@@ -572,26 +585,36 @@ public class JSONParser {
 	 * Reads a value from the source according to the
 	 * <a href="https://spec.json5.org/#prod-JSON5Value">JSON5 Specification</a>
 	 * 
-	 * @return an member name
+	 * @return a value
 	 */
 	public Object nextValue() {
 		char n = nextClean();
+		boolean wasRoot = root;
 		
-		switch(n) {
-		case '"':
-		case '\'':
-			return nextString(n);
-		case '{':
-			back();
-			return new JSONObject(this);
-		case '[':
-			back();
-			return new JSONArray(this);
+		try {
+			switch(n) {
+			case '"':
+			case '\'':
+				return nextString(n);
+			case '{':
+				back();
+				root = false;
+				return new JSONObject(this);
+			case '[':
+				back();
+				root = false;
+				return new JSONArray(this);
+			}
+		} finally {
+			root = wasRoot;
 		}
 		
 		back();
 		
 		String string = nextCleanTo(",]}");
+		
+		if(string == null)
+			throw syntaxError("Expected value, got EOF instead");
 		
 		if(string.equals("null"))
 			return null;
@@ -636,17 +659,15 @@ public class JSONParser {
 				if((leading >= '0' && leading <= '9') || leading == '.') {
 					Number num = parseNumber(leading, rest);
 					
-					if(num != null) {
-						if(sign < 0) {
-							if(num instanceof BigInteger)
-								return ((BigInteger) num).negate();
+					if(sign < 0) {
+						if(num instanceof BigInteger)
+							return ((BigInteger) num).negate();
 
-							if(num instanceof BigDecimal)
-								return ((BigDecimal) num).negate();
-						}
-
-						return num;
+						if(num instanceof BigDecimal)
+							return ((BigDecimal) num).negate();
 					}
+
+					return num;
 				}
 			}
 		}
@@ -1022,6 +1043,39 @@ public class JSONParser {
 		return (c >= '0' && c <= '9')
 			|| (c >= 'a' && c <= 'f')
 			|| (c >= 'A' && c <= 'F');
+	}
+
+	/**
+	 * Converts a character into a string representation:
+	 * 
+	 * <ul>
+	 * <li>if {@code c == 0}, {@code "EOF"} is returned</li>
+	 * <li>if {@code c} fulfills one of the following conditions, {@code "'x'"}
+	 *   is returned, where {@code x} is the value returned by {@link Character#toString(char)}:
+	 *   <ul>
+	 *   <li>if {@code c} is an extended ASCII character ({@code U+0001-U+00FF}),
+	 *       except {@link Character#isISOControl(char) control characters}</li>
+	 *   <li>if {@code c} is a {@link Character#isLetter(char) Unicode letter}</li>
+	 *   <li>if {@code c} is a {@link Character#isDigit(char) Unicode digit}</li>
+	 *   </ul>
+	 * </li>
+	 * <li>otherwise, {@code "U+XXXX"} is returned, where {@code XXXX} is the uppercase
+	 *     hexadecimal representation of {@code c}'s Unicode codepoint, padded with zeros
+	 *     ({@code 0}) to a length of 4 characters</li>
+	 * </ul>
+	 * 
+	 * @param c the character
+	 * @return the string representation
+	 * @since 2.1.0
+	 */
+	protected static String charToString(char c) {
+		if(c == 0)
+			return "EOF";
+		
+		if((c <= 0xFF && !Character.isISOControl(c)) || Character.isLetterOrDigit(c))
+			return "'" + c + "'";
+		
+		return String.format("U+%04X", (int) c);
 	}
 	
 }

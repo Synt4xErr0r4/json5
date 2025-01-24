@@ -260,6 +260,30 @@ public class JSONOptions {
 	DuplicateBehavior duplicateBehaviour = DuplicateBehavior.UNIQUE;
 	
 	/**
+	 * Specifies whether trailing data should be allowed.<br>
+	 * If {@code false}, parsing the following will produce an error
+	 * due to the trailing {@code abc}:
+	 * 
+	 * <pre><code>{ }abc</code></pre>
+	 * 
+	 * If {@code true}, however, this will be interpreted as an empty
+	 * {@link JSONObject} and any trailing will be ignored.
+	 * <p>
+	 * Whitespace never counts as trailing data.
+	 * <p>
+	 * Default: {@code false}
+	 * <p>
+	 * <i>This is a {@link JSONParser Parser}-only option</i>
+	 * 
+	 * @param allowTrailingData a boolean
+	 * 
+	 * @return whether trailing data should be allowed
+	 * @since 2.1.0
+	 */
+	@Builder.Default
+	boolean allowTrailingData = false;
+	
+	/**
 	 * An enum containing all supported behaviors for duplicate keys
 	 * 
 	 * @since 1.3.0

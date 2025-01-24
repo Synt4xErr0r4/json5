@@ -82,6 +82,9 @@ public class JSONArray implements Iterable<Object> {
 			case 0:
 				throw parser.syntaxError("A JSONArray must end with ']'");
 			case ']':
+				if(parser.root && !parser.options.isAllowTrailingData() && parser.nextClean() != 0) {
+					throw parser.syntaxError("Trailing data after JSONArray");
+				}
 				return;
 			default:
 				parser.back();
@@ -97,7 +100,7 @@ public class JSONArray implements Iterable<Object> {
 				return;
 			
 			if(c != ',')
-				throw parser.syntaxError("Expected ',' or ']' after value, got '" + c + "' instead");
+				throw parser.syntaxError("Expected ',' or ']' after value, got " + JSONParser.charToString(c) + " instead");
 		}
 	}
 	

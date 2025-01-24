@@ -27,9 +27,9 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.DateTimeException;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -56,7 +56,7 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	 * Constructs a new JSONObject
 	 */
 	public JSONObject() {
-		values = new HashMap<>();
+		values = new LinkedHashMap<>();
 	}
 	
 	/**
@@ -93,6 +93,9 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 			case 0:
 				throw parser.syntaxError("A JSONObject must end with '}'");
 			case '}':
+				if(parser.root && !parser.options.isAllowTrailingData() && parser.nextClean() != 0) {
+					throw parser.syntaxError("Trailing data after JSONObject");
+				}
 				return;
 			default:
 				parser.back();
@@ -107,7 +110,7 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 			c = parser.nextClean();
 			
 			if(c != ':')
-				throw parser.syntaxError("Expected ':' after a key, got '" + c + "' instead");
+				throw parser.syntaxError("Expected ':' after a key, got " + JSONParser.charToString(c) + " instead");
 			
 			Object value = parser.nextValue();
 			
@@ -136,7 +139,7 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 				return;
 			
 			if(c != ',')
-				throw parser.syntaxError("Expected ',' or '}' after value, got '" + c + "' instead");
+				throw parser.syntaxError("Expected ',' or '}' after value, got " + JSONParser.charToString(c) + " instead");
 		}
 	}
 	
@@ -188,7 +191,7 @@ public class JSONObject implements Iterable<Map.Entry<String, Object>> {
 	 * @return a map of the entries of this object
 	 */
 	public Map<String, Object> toMap() {
-		Map<String, Object> map = new HashMap<>();
+		Map<String, Object> map = new LinkedHashMap<>();
 		
 		for(Entry<String, Object> entry : this) {
 			Object value = entry.getValue();
